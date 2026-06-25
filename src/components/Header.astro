@@ -1,0 +1,234 @@
+---
+// src/components/Header.astro — SmartOrder
+// Dock flotante: cápsula glass centrada que entra cayendo y se compacta al scroll.
+// No es un header de barra clásica. Lee contracts/site.json.
+// El logo es el IMAGOTIPO oficial inlineado (letras a var(--text-primary) para fondo oscuro).
+import { readFileSync } from 'node:fs';
+import site from '../../contracts/site.json';
+import { withBase } from '../lib/path.js';
+
+const { siteName } = site.site;
+const nav = site.navigation ?? [];
+const orderUrl = site.orderUrl ?? '#';
+
+const imagotipo = readFileSync(new URL('../../public/imagotipo.svg', import.meta.url), 'utf-8')
+  .replace(/<\?xml[^?]*\?>/, '');
+---
+
+<header class="dock-wrap" data-dock-wrap>
+  <div class="dock" data-dock>
+    <a href={withBase('/')} class="dock__logo" aria-label={`${siteName} — Inicio`}>
+      <Fragment set:html={imagotipo} />
+    </a>
+
+    <nav class="dock__nav" aria-label="Navegación principal">
+      <ul role="list">
+        {nav.map((item) => (
+          <li><a href={withBase(item.href)}>{item.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <a href={orderUrl} class="dock__cta">Solicitar demo</a>
+
+    <button class="dock__burger" aria-label="Abrir menú" aria-expanded="false" aria-controls="dock-overlay" data-dock-toggle>
+      <span></span><span></span>
+    </button>
+  </div>
+
+  <!-- Overlay móvil -->
+  <div class="dock-overlay" id="dock-overlay" data-dock-overlay hidden>
+    <nav aria-label="Navegación móvil">
+      <ul role="list">
+        {nav.map((item) => (
+          <li><a href={withBase(item.href)} data-dock-link>{item.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+    <a href={orderUrl} class="dock-overlay__cta" data-dock-link>Solicitar demo</a>
+  </div>
+</header>
+
+<script>
+  function initDock() {
+    const wrap    = document.querySelector('[data-dock-wrap]');
+    const dock    = document.querySelector('[data-dock]');
+    const toggle  = document.querySelector('[data-dock-toggle]');
+    const overlay = document.querySelector('[data-dock-overlay]');
+    if (!wrap || !dock) return;
+
+    // Compactar al scroll
+    const onScroll = () => dock.classList.toggle('is-scrolled', window.scrollY > 60);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Entrada: cae desde arriba (CSS animation, respeta reduced-motion)
+    wrap.classList.add('is-in');
+
+    if (toggle && overlay) {
+      const setOpen = (open) => {
+        overlay.toggleAttribute('hidden', !open);
+        overlay.classList.toggle('is-open', open);
+        toggle.classList.toggle('is-active', open);
+        toggle.setAttribute('aria-expanded', String(open));
+        document.body.style.overflow = open ? 'hidden' : '';
+      };
+      toggle.addEventListener('click', () => setOpen(overlay.hasAttribute('hidden')));
+      overlay.querySelectorAll('[data-dock-link]').forEach((a) =>
+        a.addEventListener('click', () => setOpen(false)));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !overlay.hasAttribute('hidden')) setOpen(false);
+      });
+    }
+  }
+  document.addEventListener('astro:page-load', initDock);
+  document.addEventListener('astro:before-swap', () => { document.body.style.overflow = ''; });
+</script>
+
+<style>
+  /* ── Dock flotante ── */
+  .dock-wrap {
+    position: fixed;
+    top: var(--space-sm);
+    left: 0; right: 0;
+    z-index: var(--z-overlay);
+    display: flex;
+    justify-content: center;
+    padding-inline: var(--space-sm);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+  .dock-wrap.is-in {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.9s var(--ease-expo), transform 0.9s var(--ease-expo);
+  }
+
+  .dock {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 0.55rem 0.65rem 0.55rem 1rem;
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--bg-secondary) 62%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+  }
+  .dock.is-scrolled {
+    background: color-mix(in srgb, var(--bg-secondary) 86%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 24px color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .dock__logo {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .dock__logo :global(svg) { display: block; height: 26px; width: auto; }
+  /* Letras del imagotipo en claro (versión para fondo oscuro de la marca) */
+  .dock__logo :global(svg g path),
+  .dock__logo :global(svg g polygon) { fill: var(--text-primary); }
+
+  .dock__nav ul { display: flex; gap: var(--space-md); list-style: none; }
+  .dock__nav a {
+    position: relative;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+  .dock__nav a::after {
+    content: '';
+    position: absolute; left: 0; bottom: -6px;
+    width: 100%; height: 2px; border-radius: 2px;
+    background: var(--accent);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform var(--transition-fast);
+  }
+  .dock__nav a:hover { color: var(--text-primary); }
+  .dock__nav a:hover::after { transform: scaleX(1); }
+
+  .dock__cta {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--bg-primary);
+    background: var(--accent);
+    padding: 0.55em 1.1em;
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent);
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+  }
+  .dock__cta:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+  .dock__burger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 44px; height: 44px;
+    background: none; border: none; cursor: pointer; padding: 12px;
+  }
+  .dock__burger span {
+    display: block; height: 2px; width: 100%;
+    background: var(--text-primary); border-radius: 2px;
+    transition: transform var(--transition-fast);
+  }
+  .dock__burger.is-active span:nth-child(1) { transform: translateY(3.5px) rotate(45deg); }
+  .dock__burger.is-active span:nth-child(2) { transform: translateY(-3.5px) rotate(-45deg); }
+
+  /* ── Overlay móvil ── */
+  .dock-overlay {
+    position: fixed; inset: 0;
+    z-index: calc(var(--z-overlay) - 1);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: var(--space-lg);
+    background: color-mix(in srgb, var(--bg-primary) 94%, transparent);
+    backdrop-filter: blur(14px);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    pointer-events: auto;
+  }
+  .dock-overlay.is-open { opacity: 1; }
+  .dock-overlay[hidden] { display: none; }
+  .dock-overlay ul { list-style: none; display: grid; gap: var(--space-md); text-align: center; }
+  .dock-overlay a {
+    font-family: var(--font-heading);
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+  .dock-overlay a:hover { color: var(--accent); }
+  .dock-overlay__cta {
+    font-family: var(--font-body) !important;
+    font-size: var(--text-base) !important;
+    font-weight: 600;
+    color: var(--bg-primary) !important;
+    background: var(--accent);
+    padding: 0.8em 1.8em;
+    border-radius: var(--radius-full);
+  }
+
+  @media (max-width: 860px) {
+    .dock { gap: var(--space-sm); }
+    .dock__nav, .dock__cta { display: none; }
+    .dock__burger { display: flex; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dock-wrap { opacity: 1; transform: none; transition: none; }
+  }
+</style>

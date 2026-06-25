@@ -1,0 +1,36 @@
+{
+  "slug": "index",
+  "page_type": "landing",
+  "_comment": "Home bespoke de SmartOrder (src/pages/index.astro, no se regenera con generate.js). Este contrato registra SEO y media según el pipeline de la fábrica.",
+  "seo": {
+    "title": "SmartOrder — Abastecimiento e inventario para holdings",
+    "description": "Plataforma multi-empresa para centralizar compras, inventario y trazabilidad. Integración API, gobernanza financiera y auditoría incorruptible."
+  },
+  "hero": {
+    "headline": "Centralice el abastecimiento y control de inventario de su holding.",
+    "ctaText": "Solicitar Demostración",
+    "ctaHref": "#agendar"
+  },
+  "media": {
+    "images": [
+      {
+        "slot": "hero-visual",
+        "prompt": "Interior of a modern premium food distribution warehouse, neatly stacked crates with fresh produce and supplies, a manager in dark uniform checking inventory on a tablet, dark navy-teal atmosphere, emerald green LED accent lighting on shelves, soft volumetric light, ultra clean enterprise technology aesthetic, photorealistic, cinematic, 8k",
+        "alt": "Bodega de distribución gastronómica moderna con gestor revisando inventario en tablet",
+        "path": "/images/hero-visual.jpg"
+      },
+      {
+        "slot": "desafios-chaos",
+        "prompt": "Cinematic premium editorial photograph conveying manual restaurant back-office chaos at scale, styled and beautiful: scattered stacks of paper invoices, printed spreadsheets and sticky notes across a dark surface with an old calculator, deep navy-teal atmosphere, dramatic low-key lighting with subtle emerald-green rim light glowing on paper edges, soft volumetric haze, shallow depth of field, refined high-end commercial aesthetic, photorealistic, cinematic color grade, 8k",
+        "alt": "Facturas y planillas en papel dispersas sobre una superficie oscura: la operación manual a escala",
+        "path": "/images/desafios-chaos.webp"
+      },
+      {
+        "slot": "og-default",
+        "prompt": "(provista por el cliente — Portada-smart-order.png)",
+        "alt": "Portada SmartOrder: centraliza y automatiza tus compras, inventario y análisis",
+        "path": "/images/og-card.png"
+      }
+    ]
+  }
+}

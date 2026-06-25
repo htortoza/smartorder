@@ -1,0 +1,37 @@
+{
+  "_comment": "Contrato global — SmartOrder. Plataforma multi-empresa de abastecimiento e inventario para holdings gastronómicos.",
+  "contract_type": "site",
+  "site": {
+    "domain": "https://smartorder.cl",
+    "siteName": "Smart Order",
+    "language": "es",
+    "defaultOgImage": "/images/og-card.png"
+  },
+  "company": {
+    "legalName": "SmartOrder · by dotsolutions.io",
+    "email": "contacto@smartorder.cl",
+    "phone": "",
+    "address": "Santiago, Chile"
+  },
+  "orderUrl": "#agendar",
+  "navigation": [
+    { "label": "Plataforma",   "href": "#plataforma" },
+    { "label": "Desafíos",     "href": "#desafios" },
+    { "label": "Arquitectura", "href": "#arquitectura" },
+    { "label": "Roadmap",      "href": "#roadmap" }
+  ],
+  "footerLinks": [
+    { "label": "Plataforma",   "href": "#plataforma" },
+    { "label": "Arquitectura", "href": "#arquitectura" },
+    { "label": "Roadmap",      "href": "#roadmap" },
+    { "label": "Contacto",     "href": "mailto:contacto@smartorder.cl" }
+  ],
+  "theme": {
+    "--bg-primary":   "#0a1017",
+    "--bg-secondary": "#0f1922",
+    "--text-primary": "#eef3f6",
+    "--accent":       "#0de889",
+    "--font-heading": "'Poppins', sans-serif",
+    "--font-body":    "'Inter', sans-serif"
+  }
+}

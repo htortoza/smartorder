@@ -1,0 +1,1643 @@
+---
+// src/pages/index.astro — HOME BESPOKE v2 (SmartOrder)
+// Concepto: "la bodega en movimiento" — el inventario fluye entre secciones.
+// Header dock flotante · hero limpio con HUD · panel 3D que se endereza ·
+// cintas de productos ligadas al scroll · sheets que se apilan · pipeline API ·
+// módulos en galería horizontal · chart predictivo dibujado por scroll.
+// NO regenerar con generate.js.
+import Layout from '../layouts/Layout.astro';
+import ShaderField from '../components/ShaderField.astro';
+import site from '../../contracts/site.json';
+import { withBase } from '../lib/path.js';
+
+const order = site.orderUrl;
+
+const seo = {
+  title: 'SmartOrder — Abastecimiento e inventario para holdings',
+  description: 'Plataforma multi-empresa para centralizar compras, inventario y trazabilidad. Integración API, gobernanza financiera y auditoría incorruptible.',
+  googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap',
+  schemaData: {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'SmartOrder',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    description: 'Plataforma multi-empresa de abastecimiento e inventario para operaciones gastronómicas.',
+  },
+};
+
+const rows = [
+  { name: 'Banana',             sku: 'SKU-7802820032016', stock: '142', estado: 'ok' },
+  { name: 'Agua mineral 500ml', sku: 'SKU-7802820007014', stock: '38',  estado: 'bajo' },
+  { name: 'Maní salado',        sku: 'SKU-7802820018010', stock: '6',   estado: 'critico' },
+  { name: 'Aceite vegetal 1L',  sku: 'SKU-7802820044019', stock: '74',  estado: 'ok' },
+];
+
+// Productos que viajan por las cintas (la bodega en movimiento)
+const conveyor = [
+  { name: 'Banana',             sku: '0320', qty: '142 un', estado: 'ok' },
+  { name: 'Agua mineral 500ml', sku: '0070', qty: '38 un',  estado: 'bajo' },
+  { name: 'Harina 25kg',        sku: '0911', qty: '12 sac', estado: 'ok' },
+  { name: 'Café grano 1kg',     sku: '0455', qty: '26 un',  estado: 'ok' },
+  { name: 'Maní salado',        sku: '0180', qty: '6 un',   estado: 'critico' },
+  { name: 'Queso gouda kg',     sku: '0762', qty: '18 kg',  estado: 'ok' },
+  { name: 'Tomate triturado',   sku: '0533', qty: '44 un',  estado: 'ok' },
+  { name: 'Aceite vegetal 1L',  sku: '0440', qty: '74 un',  estado: 'ok' },
+];
+
+const desafios = [
+  { n: '01', t: 'Descentralización de Compras', d: 'Falta de políticas automatizadas que prevengan sobrecostos, compras fuera de contrato o adquisiciones no autorizadas por gerencia.' },
+  { n: '02', t: 'Silos de Información (Stock)', d: 'Desconexión entre la venta real y la deducción teórica de insumos, generando mermas no justificadas y quiebres de stock en sucursales.' },
+  { n: '03', t: 'Auditorías Vulnerables', d: 'Procesos de conteo físico susceptibles a errores o manipulaciones, dificultando la consolidación contable a fin de mes.' },
+];
+
+const pipeline = [
+  { t: 'Integración Transaccional (API)', d: 'Deducción exacta y automática de materias primas (BOM) con cada transacción registrada en su POS.', tag: 'POS → Stock' },
+  { t: 'Trazabilidad Incorruptible', d: 'Log de auditoría completo para cada ajuste de stock, transferencia entre bodegas y recepción de mercancía.', tag: 'Audit log' },
+  { t: 'Gobernanza Multi-Tenant', d: 'Múltiples razones sociales, marcas y bodegas desde un único panel con permisos granulares por usuario.', tag: 'Multi-empresa' },
+];
+
+---
+
+<Layout
+  title={seo.title}
+  description={seo.description}
+  googleFontsUrl={seo.googleFontsUrl}
+  schemaData={seo.schemaData}
+>
+  <div class="bgmorph" data-bgmorph aria-hidden="true"></div>
+  <div class="deco" aria-hidden="true"></div>
+
+  <!-- ░░ HERO — dividido en 2: copy izquierda / visual derecha ░░ -->
+  <section class="hero" id="top" data-hero aria-label="Inicio">
+    <div class="container hero__grid">
+      <div class="hero__copy">
+        <span class="chip" data-reveal>
+          <i aria-hidden="true"></i>
+          Plataforma Multi-Empresa · Operaciones Gastronómicas
+        </span>
+        <h1 class="hero__title" data-title>
+          Centralice el <em>abastecimiento</em> y control de inventario de su holding.
+        </h1>
+        <p class="hero__lead" data-reveal>
+          Estandarice sus flujos de compra y automatice la deducción de recetas mediante
+          integración API. Visibilidad y trazabilidad total para su cadena logística.
+        </p>
+        <ul class="hero__insights" data-reveal>
+          <li>
+            <span class="insight__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span><strong>Trazabilidad 100% auditable.</strong> Registro inmutable por usuario, fecha y sucursal.</span>
+          </li>
+          <li>
+            <span class="insight__check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span><strong>Gobernanza financiera.</strong> Aprobación jerárquica para la emisión de Órdenes de Compra.</span>
+          </li>
+        </ul>
+        <div class="hero__cta" data-reveal>
+          <a class="btn btn--primary" href={order} data-magnetic>Solicitar Demostración</a>
+          <a class="btn btn--ghost" href="#solucion">Ver Arquitectura del Sistema<span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+
+      <!-- Visual: imagen de bodega (Magnific) + panel de inventario superpuesto -->
+      <div class="hero__visual" data-stage>
+        <figure class="visual" data-visual>
+          <img src={withBase('/images/hero-visual.jpg')} alt="Bodega de distribución gastronómica moderna con gestor revisando inventario en tablet" />
+          <figcaption class="visual__cap">
+            <span class="visual__dot" aria-hidden="true"></span>
+            Bodega central · Sincronizada
+          </figcaption>
+        </figure>
+
+        <div class="panel" data-panel aria-hidden="true">
+          <span class="panel__scan" aria-hidden="true"></span>
+          <div class="panel__bar">
+            <span class="panel__brand"><img src={withBase('/isotipo.svg')} alt="" width="14" height="16" />Inventario · Holding</span>
+            <span class="panel__pill panel__pill--accent" data-count>52</span>
+          </div>
+          <div class="panel__head"><span>Producto</span><span>SKU</span><span>Stock</span><span>Estado</span></div>
+          <ul class="panel__rows">
+            {rows.map((r) => (
+              <li class="prow" data-row>
+                <span class="prow__name">{r.name}</span>
+                <span class="prow__sku">{r.sku}</span>
+                <span class="prow__stock">{r.stock}</span>
+                <span class={`tag tag--${r.estado}`}>{r.estado === 'ok' ? 'Óptimo' : r.estado === 'bajo' ? 'Bajo' : 'Crítico'}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinta 1: productos saliendo de bodega (se desliza con el scroll) -->
+    <div class="conveyor" data-conveyor="-1" aria-hidden="true">
+      <div class="conveyor__track" data-conveyor-track>
+        {[...conveyor, ...conveyor].map((c) => (
+          <span class="crate">
+            <i class={`crate__dot crate__dot--${c.estado}`}></i>
+            <span class="crate__name">{c.name}</span>
+            <span class="crate__sku">#{c.sku}</span>
+            <span class="crate__qty">{c.qty}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 02 · DESAFÍOS — narrativa sticky + ledger con cifras fantasma (Magnific) ░░ -->
+  <section class="sheet sheet--a" id="desafios" aria-label="Desafíos">
+    <div class="container sheet__inner desa">
+      <div class="desa__aside">
+        <header class="shead">
+          <span class="kicker">02 — El problema a escala</span>
+          <h2>Superando los cuellos de botella en la operación a escala.</h2>
+          <p>La dependencia de procesos manuales y hojas de cálculo fragmentadas introduce
+          riesgos operativos y financieros que impactan el margen de contribución.</p>
+        </header>
+        <figure class="desa__img" data-item>
+          <img src={withBase('/images/desafios-chaos.webp')} alt="Facturas y planillas en papel dispersas sobre una superficie oscura: la operación manual a escala" loading="lazy" />
+          <figcaption>La operación manual: papel, planillas y errores</figcaption>
+        </figure>
+      </div>
+      <ol class="ledger" role="list">
+        {desafios.map((c) => (
+          <li class="ledger__row" data-item>
+            <span class="ledger__ghost" aria-hidden="true">{c.n}</span>
+            <div class="ledger__body">
+              <h3>{c.t}</h3>
+              <p>{c.d}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <!-- ░░ 03 · EL SISTEMA — productos flotando entran a la bodega y se vuelven datos/recetas ░░ -->
+  <section class="plan-sec" id="planning" aria-label="Planning de inventario">
+    <span class="plan-sec__grain" aria-hidden="true"></span>
+    <div class="container plan__head">
+      <span class="kicker">03 — El sistema en marcha</span>
+      <h2 class="plan__title">Planning para gestión<br>de inventario</h2>
+      <p class="plan__lead">Recibe tu inventario, ordénalo en bodegas y conviértelo en información viva:
+      órdenes de compra, recetas estandarizadas y descuento automático al vender.</p>
+    </div>
+
+    <div class="plan" data-plan>
+      <div class="plan__stage">
+        <div class="container plan__inner">
+
+          <!-- Cables que conectan la bodega con cada salida (diagrama vivo) -->
+          <svg class="plan__wires" data-wires viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="wire" data-wire d="M34 27 L15 22" />
+            <path class="wire" data-wire d="M34 53 L15 60" />
+            <path class="wire" data-wire d="M66 27 L85 18" />
+            <path class="wire" data-wire d="M68 40 L86 45" />
+            <path class="wire" data-wire d="M66 53 L84 73" />
+            <circle class="wire__pkt" data-pkt="in"  r="0.7" />
+            <circle class="wire__pkt" data-pkt="in"  r="0.7" />
+            <circle class="wire__pkt" data-pkt="out" r="0.7" />
+            <circle class="wire__pkt" data-pkt="out" r="0.7" />
+            <circle class="wire__pkt" data-pkt="out" r="0.7" />
+          </svg>
+
+          <!-- Nube de productos que flotan y entran a la bodega -->
+          <div class="plan__cloud" aria-hidden="true">
+            <span class="pchip" data-pchip style="top:6%;left:8%">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4-5 10-5 14 0-4 5-10 5-14 0Z"/><circle cx="14" cy="12" r="1.1" fill="currentColor" stroke="none"/><path d="M17 12h4l-2 3 2 3-6-2"/></svg>
+              Salmón
+            </span>
+            <span class="pchip" data-pchip style="top:2%;left:60%">
+              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7" cy="8" r="1.3"/><circle cx="12" cy="6" r="1.3"/><circle cx="17" cy="8" r="1.3"/><circle cx="9" cy="13" r="1.3"/><circle cx="15" cy="13" r="1.3"/><circle cx="12" cy="18" r="1.3"/></svg>
+              Arroz
+            </span>
+            <span class="pchip" data-pchip style="top:22%;left:80%">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3c5 0 8 4 8 9s-3 9-8 9-8-4-8-9c0-3 1-5 3-6"/><circle cx="12" cy="14" r="2.4"/></svg>
+              Palta
+            </span>
+            <span class="pchip" data-pchip style="top:64%;left:6%">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3c3 4 5 6 5 9a5 5 0 0 1-10 0c0-3 2-5 5-9Z"/></svg>
+              Aceite
+            </span>
+            <span class="pchip" data-pchip style="top:82%;left:28%">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="12" rx="5" ry="8"/><path d="M12 5c-1.5 3-1.5 11 0 14"/></svg>
+              Café
+            </span>
+            <span class="pchip" data-pchip style="top:84%;left:64%">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+              Nori
+            </span>
+            <span class="pchip" data-pchip style="top:42%;left:-2%">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/></svg>
+              Harina
+            </span>
+            <span class="pchip" data-pchip style="top:14%;left:34%">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="11" rx="1.5"/><path d="M9 7V5h6v2"/></svg>
+              Azúcar
+            </span>
+          </div>
+
+          <!-- Caja central: la bodega con su inventario ya ordenado -->
+          <div class="plan__box" data-plan-box aria-hidden="true">
+            <span class="plan__box-glow"></span>
+            <div class="plan__box-head">
+              <svg class="plan__box-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 7l9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
+              <span class="plan__box-label">Bodega · SmartOrder</span>
+              <span class="plan__box-tag">Inventario ordenado</span>
+            </div>
+            <div class="plan__shelf" data-shelf>
+              <span class="ptile" data-ptile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c4-5 10-5 14 0-4 5-10 5-14 0Z"/><circle cx="14" cy="12" r="1.1" fill="currentColor" stroke="none"/><path d="M17 12h4l-2 3 2 3-6-2"/></svg><b>Salmón</b><i>24</i></span>
+              <span class="ptile" data-ptile><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7" cy="8" r="1.3"/><circle cx="12" cy="6" r="1.3"/><circle cx="17" cy="8" r="1.3"/><circle cx="9" cy="13" r="1.3"/><circle cx="15" cy="13" r="1.3"/><circle cx="12" cy="18" r="1.3"/></svg><b>Arroz</b><i>60</i></span>
+              <span class="ptile" data-ptile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3c5 0 8 4 8 9s-3 9-8 9-8-4-8-9c0-3 1-5 3-6"/><circle cx="12" cy="14" r="2.4"/></svg><b>Palta</b><i>38</i></span>
+              <span class="ptile" data-ptile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3c3 4 5 6 5 9a5 5 0 0 1-10 0c0-3 2-5 5-9Z"/></svg><b>Aceite</b><i>15</i></span>
+              <span class="ptile" data-ptile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="12" rx="5" ry="8"/><path d="M12 5c-1.5 3-1.5 11 0 14"/></svg><b>Café</b><i>26</i></span>
+              <span class="ptile" data-ptile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9l6 6M15 9l-6 6"/></svg><b>Nori</b><i>90</i></span>
+              <span class="ptile" data-ptile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8l8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8"/></svg><b>Harina</b><i>9</i></span>
+              <span class="ptile" data-ptile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="11" rx="1.5"/><path d="M9 7V5h6v2"/></svg><b>Azúcar</b><i>18</i></span>
+            </div>
+          </div>
+
+          <!-- Nodos de la historia, conectados a la bodega -->
+          <div class="pnode pnode--in" data-pnode style="left:15%;top:22%">
+            <span class="pnode__n">01</span>
+            <div class="pnode__b"><h3>Recepción</h3><p>42 SKU recibidos y verificados contra la orden.</p></div>
+          </div>
+          <div class="pnode pnode--in" data-pnode style="left:15%;top:60%">
+            <span class="pnode__n">02</span>
+            <div class="pnode__b"><h3>Orden en bodegas</h3><p>Cada insumo asignado a su ubicación y sucursal.</p></div>
+          </div>
+          <div class="pnode pnode--out" data-pnode style="left:85%;top:18%">
+            <span class="pnode__n">03</span>
+            <div class="pnode__b"><h3>Orden de inventario</h3><p>Stock y niveles consolidados en tiempo real.</p></div>
+          </div>
+          <div class="pnode pnode--out" data-pnode style="left:86%;top:45%">
+            <span class="pnode__n">04</span>
+            <div class="pnode__b"><h3>Recetas (BOM)</h3><p>Costo teórico por plato, estandarizado.</p></div>
+          </div>
+          <div class="pnode pnode--out" data-pnode style="left:84%;top:73%">
+            <span class="pnode__n">05</span>
+            <div class="pnode__b"><h3>Descuento al vender</h3><p>El POS deduce la materia prima en cada venta.</p></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 04 · LA PLATAFORMA — sala de control: el scroll recorre cada módulo ░░ -->
+  <section class="os-sec" id="plataforma" aria-label="La plataforma">
+    <span class="os-sec__grain" aria-hidden="true"></span>
+    <div class="container">
+      <header class="shead">
+        <span class="kicker">04 — La plataforma</span>
+        <h2>Estandarización, control y visibilidad en tiempo real.</h2>
+        <p>Arquitectura multi-empresa nativa que conecta el consumo en el punto de venta con la
+        planificación de bodegas. Cada movimiento, respaldado por reglas de negocio estrictas.</p>
+      </header>
+    </div>
+
+    <div class="os" data-os>
+      <div class="os__stage">
+        <div class="container os__inner">
+          <aside class="os__rail">
+            <span class="os__track" aria-hidden="true"><span class="os__progress" data-os-progress></span></span>
+            <ol role="list">
+              <li class="os__dot is-active" data-os-dot="0">
+                <span class="os__rn">1.0</span>
+                <div class="os__rtext">
+                  <span class="os__rlabel">Gestión de Compras</span>
+                  <p class="os__rdesc">Cotizaciones y Órdenes de Compra vinculadas a flujos de aprobación gerencial según límites de presupuesto.</p>
+                </div>
+              </li>
+              <li class="os__dot" data-os-dot="1">
+                <span class="os__rn">2.0</span>
+                <div class="os__rtext">
+                  <span class="os__rlabel">Control de Bodegas</span>
+                  <p class="os__rdesc">Transferencias internas con validación de “Stock en Tránsito”: salida y recepción confirmadas, sin mermas no justificadas.</p>
+                </div>
+              </li>
+              <li class="os__dot" data-os-dot="2">
+                <span class="os__rn">3.0</span>
+                <div class="os__rtext">
+                  <span class="os__rlabel">Auditoría y Conteos</span>
+                  <p class="os__rdesc">Conteos físicos “a ciegas”. El sistema cruza conteo vs. stock teórico y alerta cada discrepancia.</p>
+                </div>
+              </li>
+              <li class="os__dot" data-os-dot="3">
+                <span class="os__rn">4.0</span>
+                <div class="os__rtext">
+                  <span class="os__rlabel">Ingeniería de Menú</span>
+                  <p class="os__rdesc">Recetas estandarizadas y centralizadas para asegurar el costo teórico de cada producción.</p>
+                </div>
+              </li>
+            </ol>
+          </aside>
+
+          <div class="os__device">
+            <div class="os__chrome" aria-hidden="true">
+              <span class="os__traffic"><i></i><i></i><i></i></span>
+              <span class="os__app">SmartOrder OS</span>
+              <span class="os__live"><i></i> en vivo</span>
+            </div>
+            <div class="os__screens">
+
+              <div class="os__screen" data-os-screen="0">
+                <h3 class="os__sn"><b>1.0</b> Gestión de Compras</h3>
+                <p class="os__desc">Cotizaciones y Órdenes de Compra vinculadas a flujos de aprobación gerencial según límites de presupuesto.</p>
+                <div class="mock" aria-hidden="true">
+                  <div class="mock__bar"><span>Órdenes de Compra</span><span class="mock__id">Junio · 14 activas</span></div>
+                  <div class="mock__body">
+                    <div class="mock__row mock__row--dim"><span>Presupuesto mensual</span><span>68% · $12,4M de $18,2M</span></div>
+                    <div class="mock__meter"><i style="width:68%"></i></div>
+                    <ul class="oclist" role="list">
+                      <li class="ocrow"><span class="ocrow__id">OC-2041</span><span class="ocrow__prov">Proveedor Pacífico Ltda.</span><span class="ocrow__amt">$1.842.500</span><span class="badge badge--warn">Gerencia</span></li>
+                      <li class="ocrow"><span class="ocrow__id">OC-2038</span><span class="ocrow__prov">Distribuidora Andina</span><span class="ocrow__amt">$642.300</span><span class="badge badge--ok">Aprobada</span></li>
+                      <li class="ocrow"><span class="ocrow__id">OC-2035</span><span class="ocrow__prov">Frutas del Sur</span><span class="ocrow__amt">$318.900</span><span class="badge badge--neutral">En revisión</span></li>
+                      <li class="ocrow"><span class="ocrow__id">OC-2030</span><span class="ocrow__prov">Lácteos Cordillera</span><span class="ocrow__amt">$97.450</span><span class="badge badge--bad">Rechazada</span></li>
+                    </ul>
+                    <div class="mock__sub">Flujo de aprobación · OC-2041</div>
+                    <ol class="approve" role="list">
+                      <li class="approve__step is-done"><i></i>Solicitada · J. Rivas</li>
+                      <li class="approve__step is-done"><i></i>Jefa de Compras · M. Soto</li>
+                      <li class="approve__step is-active"><i></i>Gerencia · pendiente</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              <div class="os__screen" data-os-screen="1">
+                <h3 class="os__sn"><b>2.0</b> Control de Bodegas</h3>
+                <p class="os__desc">Transferencias internas con validación de “Stock en Tránsito”: salida y recepción confirmadas.</p>
+                <div class="mock" aria-hidden="true">
+                  <div class="mock__bar"><span>Transferencias</span><span class="mock__id">3 en curso</span></div>
+                  <div class="mock__body">
+                    <div class="transit">
+                      <div class="transit__node">
+                        <span class="transit__name">Bodega Central</span>
+                        <span class="transit__tag is-ok">Salida confirmada</span>
+                      </div>
+                      <div class="transit__lane"><i class="transit__pkg"></i></div>
+                      <div class="transit__node">
+                        <span class="transit__name">Sucursal Vitacura</span>
+                        <span class="transit__tag">Recepción pendiente</span>
+                      </div>
+                    </div>
+                    <div class="mock__sub">Movimientos recientes</div>
+                    <ul class="oclist" role="list">
+                      <li class="ocrow"><span class="ocrow__id">TR-0883</span><span class="ocrow__prov">Central → Vitacura</span><span class="ocrow__amt">84 u</span><span class="badge badge--warn">En tránsito</span></li>
+                      <li class="ocrow"><span class="ocrow__id">TR-0881</span><span class="ocrow__prov">Central → Las Condes</span><span class="ocrow__amt">120 u</span><span class="badge badge--ok">Recibida</span></li>
+                      <li class="ocrow"><span class="ocrow__id">TR-0879</span><span class="ocrow__prov">Providencia → Central</span><span class="ocrow__amt">36 u</span><span class="badge badge--neutral">Por recibir</span></li>
+                      <li class="ocrow"><span class="ocrow__id">TR-0874</span><span class="ocrow__prov">Central → Ñuñoa</span><span class="ocrow__amt">52 u</span><span class="badge badge--ok">Recibida</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div class="os__screen" data-os-screen="2">
+                <h3 class="os__sn"><b>3.0</b> Auditoría y Conteos</h3>
+                <p class="os__desc">Conteos físicos “a ciegas”. El sistema cruza conteo vs. stock teórico y alerta discrepancias.</p>
+                <div class="mock" aria-hidden="true">
+                  <div class="mock__bar"><span>Conteo a ciegas</span><span class="mock__id">Bodega Central · #C-118</span></div>
+                  <div class="mock__body">
+                    <div class="mock__row"><span>Aceite vegetal 1L</span><span class="count"><em>74</em><i class="count__ok">✓ 74</i></span></div>
+                    <div class="mock__row"><span>Café grano 1kg</span><span class="count"><em>26</em><i class="count__ok">✓ 26</i></span></div>
+                    <div class="mock__row"><span>Azúcar 5kg</span><span class="count"><em>18</em><i class="count__ok">✓ 18</i></span></div>
+                    <div class="mock__row"><span>Harina 25kg</span><span class="count"><em>9</em><i class="count__ok">✓ 9</i></span></div>
+                    <div class="mock__row"><span>Maní salado</span><span class="count"><em>5</em><i class="count__bad">⚠ teórico 6</i></span></div>
+                    <div class="mock__row"><span>Servilletas (caja)</span><span class="count"><em>120</em><i class="count__ok">✓ 120</i></span></div>
+                    <div class="mock__row"><span>Aceite de oliva 500ml</span><span class="count"><em>12</em><i class="count__ok">✓ 12</i></span></div>
+                    <div class="mock__alert">Discrepancia detectada · −1 unidad · ajuste requiere autorización</div>
+                    <div class="mock__total"><span>Conciliación del conteo</span><strong>96%</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="os__screen" data-os-screen="3">
+                <h3 class="os__sn"><b>4.0</b> Ingeniería de Menú</h3>
+                <p class="os__desc">Recetas estandarizadas y centralizadas para asegurar el costo teórico de su producción.</p>
+                <div class="mock" aria-hidden="true">
+                  <div class="mock__bar"><span>Receta · BOM</span><span class="mock__id">Roll California</span></div>
+                  <div class="mock__body">
+                    <div class="mock__row"><span>Arroz grado sushi · 120 g</span><span>$310</span></div>
+                    <div class="mock__row"><span>Salmón fresco · 60 g</span><span>$590</span></div>
+                    <div class="mock__row"><span>Palta · 40 g</span><span>$180</span></div>
+                    <div class="mock__row"><span>Nori · 1 hoja</span><span>$160</span></div>
+                    <div class="mock__row"><span>Sésamo · 5 g</span><span>$40</span></div>
+                    <div class="mock__total"><span>Costo teórico por porción</span><strong>$1.280</strong></div>
+                    <div class="mock__sub">Costeo por plato</div>
+                    <ul class="oclist" role="list">
+                      <li class="ocrow"><span class="ocrow__prov">Roll California</span><span class="ocrow__amt">$1.280</span><span class="badge badge--ok">32% margen</span></li>
+                      <li class="ocrow"><span class="ocrow__prov">Ramen Tonkotsu</span><span class="ocrow__amt">$2.140</span><span class="badge badge--ok">41% margen</span></li>
+                      <li class="ocrow"><span class="ocrow__prov">Gyozas (6 u)</span><span class="ocrow__amt">$890</span><span class="badge badge--warn">21% margen</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 04 · ARQUITECTURA — diagrama vivo POS → SmartOrder → Bodegas ░░ -->
+  <section class="arch" id="arquitectura" aria-label="Arquitectura">
+    <div class="container">
+      <header class="shead">
+        <span class="kicker">05 — Arquitectura</span>
+        <h2>Conectado a su punto de venta.</h2>
+        <p>Cada transacción del POS deduce materias primas en tiempo real y queda registrada
+        en un log de auditoría inmutable.</p>
+      </header>
+
+      <div class="flow" data-item aria-hidden="true">
+        <div class="flow__node">
+          <span class="flow__ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </span>
+          <span class="flow__name">POS / Venta</span>
+          <span class="flow__tag">transacción</span>
+        </div>
+        <div class="flow__lane"><i></i></div>
+        <div class="flow__node flow__node--core">
+          <img src={withBase('/isotipo.svg')} alt="" width="34" height="38" />
+          <span class="flow__name">SmartOrder</span>
+          <span class="flow__tag">BOM · reglas · audit log</span>
+        </div>
+        <div class="flow__lane flow__lane--d2"><i></i></div>
+        <div class="flow__node">
+          <span class="flow__ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
+          </span>
+          <span class="flow__name">Bodegas</span>
+          <span class="flow__tag">stock en tiempo real</span>
+        </div>
+      </div>
+
+      <ul class="archvals" role="list">
+        {pipeline.map((p) => (
+          <li class="archval" data-item>
+            <span class="archval__tag">{p.tag}</span>
+            <h3>{p.t}</h3>
+            <p>{p.d}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- ░░ 05 · ESCALA — stats protagonistas + cinta de reposición ░░ -->
+  <section class="scalex" aria-label="Escalabilidad">
+    <div class="container">
+      <p class="scalex__lead" data-item>Infraestructura diseñada para soportar operaciones complejas:</p>
+      <div class="scalex__grid">
+        <div class="stat" data-item>
+          <span class="stat__v"><em data-statnum="25">0</em>+</span>
+          <span class="stat__l">desde redes de 25 colaboradores</span>
+        </div>
+        <div class="stat" data-item>
+          <span class="stat__v">Multi</span>
+          <span class="stat__l">hasta ecosistemas multi-marca y multi-bodega</span>
+        </div>
+        <div class="stat" data-item>
+          <span class="stat__v"><em data-statnum="100">0</em>%</span>
+          <span class="stat__l">de los movimientos con trazabilidad auditable</span>
+        </div>
+      </div>
+    </div>
+    <div class="conveyor conveyor--alt" data-conveyor="1" aria-hidden="true">
+      <div class="conveyor__track" data-conveyor-track>
+        {[...conveyor, ...conveyor].map((c) => (
+          <span class="crate">
+            <i class={`crate__dot crate__dot--${c.estado}`}></i>
+            <span class="crate__name">{c.name}</span>
+            <span class="crate__sku">#{c.sku}</span>
+            <span class="crate__qty">{c.qty}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ ROADMAP IA ░░ -->
+  <section class="roadmap" id="roadmap" aria-label="Roadmap">
+    <div class="container roadmap__grid">
+      <header class="shead shead--tight" data-item>
+        <span class="kicker">Visión tecnológica</span>
+        <h2>Preparando sus datos para la planificación predictiva.</h2>
+        <p>La eficiencia parte por consolidar datos históricos fiables. Al implementar SmartOrder hoy,
+        su holding construye la base estructurada para nuestro próximo despliegue.</p>
+      </header>
+      <div class="forecast" data-item>
+        <span class="badge"><i aria-hidden="true"></i>En desarrollo</span>
+        <h3>Agente Planner <span>IA</span></h3>
+        <p>Procesará su historial de consumo, estacionalidad y tiempos logísticos para sugerir
+        pronósticos de demanda de alta precisión.</p>
+        <div class="forecast__chart">
+          <svg viewBox="0 0 320 96" preserveAspectRatio="none" aria-hidden="true">
+            <polyline data-chart-base points="0,76 45,64 90,68 135,46 180,52 225,32 270,36 320,16"
+              fill="none" stroke="currentColor" stroke-width="2" />
+            <polyline class="forecast__dash" data-chart-pred points="225,32 270,24 320,8"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 6" />
+          </svg>
+          <span class="forecast__label">Forecast</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ FINALE — fondo shader iridiscente (§17) ░░ -->
+  <section class="finale" id="agendar" aria-label="Agendar">
+    <ShaderField />
+    <div class="container finale__inner" data-finale>
+      <h2><span class="line" data-fline>Escale su operación</span><span class="line" data-fline>con <em>datos confiables</em>.</span></h2>
+      <p>Bodegas y compras corporativas en una plataforma que prioriza la seguridad de la
+      información y la eficiencia administrativa.</p>
+      <a class="btn btn--primary btn--lg" href={order} data-magnetic>Agendar Reunión Técnica</a>
+      <span class="finale__meta">Implementación guiada · Integración API con su POS</span>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let mm;
+
+  function magnetic() {
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    document.querySelectorAll('[data-magnetic]').forEach((el) => {
+      const qx = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3.out' });
+      const qy = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3.out' });
+      el.addEventListener('mousemove', (e) => {
+        const r = el.getBoundingClientRect();
+        qx((e.clientX - (r.left + r.width / 2)) * 0.3);
+        qy((e.clientY - (r.top + r.height / 2)) * 0.3);
+      });
+      el.addEventListener('mouseleave', () => gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1, 0.3)' }));
+    });
+  }
+
+  function intro() {
+    if (reduced) return;
+    const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+    tl.from('[data-title]', { y: 42, opacity: 0, duration: 1.15 }, 0.1)
+      .from('.chip[data-reveal]', { y: 14, opacity: 0, duration: 0.7 }, 0.15)
+      .from('.hero__lead[data-reveal]', { y: 18, opacity: 0, duration: 0.8 }, '-=0.7')
+      .from('.hero__insights[data-reveal]', { y: 18, opacity: 0, duration: 0.8 }, '-=0.65')
+      .from('.hero__cta[data-reveal]', { y: 18, opacity: 0, duration: 0.8 }, '-=0.6')
+      .from('[data-visual]', { y: 50, opacity: 0, duration: 1.2 }, 0.3)
+      .from('[data-panel]', { y: 60, opacity: 0, duration: 1.1 }, '-=0.8')
+      .from('[data-row]', { x: 26, opacity: 0, stagger: 0.08, duration: 0.55 }, '-=0.6')
+      .from('[data-conveyor]', { opacity: 0, duration: 0.8 }, '-=0.5');
+
+    const counter = document.querySelector('[data-count]');
+    if (counter) {
+      const o = { v: 0 };
+      gsap.to(o, { v: 52, duration: 1.6, delay: 0.7, ease: 'power1.out',
+        onUpdate: () => { counter.textContent = `${Math.round(o.v)} SKUs`; } });
+    }
+  }
+
+  function scenes() {
+    // ── Cintas de productos: viajan con el scroll (todos los tamaños — slides que avanzan) ──
+    if (!reduced) {
+      document.querySelectorAll('[data-conveyor]').forEach((c) => {
+        const dir = Number(c.dataset.conveyor) || -1;
+        const track = c.querySelector('[data-conveyor-track]');
+        if (!track) return;
+        gsap.fromTo(track,
+          { xPercent: dir === -1 ? 0 : -28 },
+          { xPercent: dir === -1 ? -28 : 0, ease: 'none',
+            scrollTrigger: { trigger: c, start: 'top bottom', end: 'bottom top', scrub: 0.4 } });
+      });
+    }
+
+    // ── Reveals editoriales (todos los tamaños) ──
+    gsap.utils.toArray('.shead').forEach((h) => {
+      gsap.from(h.children, { y: 30, opacity: 0, stagger: 0.1, duration: 0.9, ease: 'expo.out',
+        scrollTrigger: { trigger: h, start: 'top 84%' } });
+    });
+    gsap.utils.toArray('[data-item]').forEach((el) => {
+      gsap.from(el, { y: 36, opacity: 0, duration: 0.9, ease: 'expo.out',
+        scrollTrigger: { trigger: el, start: 'top 86%' } });
+    });
+
+    // Líneas del ledger se dibujan
+    if (!reduced) {
+      gsap.utils.toArray('.ledger__row').forEach((row) => {
+        gsap.from(row, { '--rule': '0%', duration: 1.1, ease: 'expo.out',
+          scrollTrigger: { trigger: row, start: 'top 85%' } });
+      });
+    }
+
+    // ── Stats con count-up al entrar al viewport ──
+    document.querySelectorAll('[data-statnum]').forEach((el) => {
+      const target = Number(el.dataset.statnum) || 0;
+      if (reduced) { el.textContent = String(target); return; }
+      const o = { v: 0 };
+      gsap.to(o, {
+        v: target, duration: 1.6, ease: 'power1.out',
+        scrollTrigger: { trigger: el, start: 'top 85%' },
+        onUpdate: () => { el.textContent = String(Math.round(o.v)); },
+      });
+    });
+
+    // ── Chart del forecast: histórico se dibuja, luego la predicción punteada ──
+    const base = document.querySelector('[data-chart-base]');
+    const pred = document.querySelector('[data-chart-pred]');
+    if (base && !reduced) {
+      const lb = base.getTotalLength();
+      gsap.set(base, { strokeDasharray: lb, strokeDashoffset: lb });
+      const tl = gsap.timeline({ scrollTrigger: { trigger: '.forecast', start: 'top 72%' } });
+      tl.to(base, { strokeDashoffset: 0, duration: 1.4, ease: 'power2.out' });
+      if (pred) {
+        gsap.set(pred, { opacity: 0 });
+        tl.to(pred, { opacity: 1, duration: 0.6 }, '-=0.3');
+      }
+    }
+
+    // Finale: reveal por líneas
+    gsap.from('[data-fline]', { yPercent: 115, stagger: 0.1, duration: 1, ease: 'expo.out',
+      scrollTrigger: { trigger: '[data-finale]', start: 'top 75%' } });
+    gsap.from('[data-finale] > p, [data-finale] > .btn, [data-finale] > .finale__meta', {
+      y: 24, opacity: 0, stagger: 0.1, duration: 0.8, ease: 'expo.out',
+      scrollTrigger: { trigger: '[data-finale]', start: 'top 70%' } });
+
+    if (mm) mm.revert();
+    mm = gsap.matchMedia();
+
+    // ════ DESKTOP: profundidad del visual, transición de sheets ════
+    mm.add('(min-width: 768px)', () => {
+      if (reduced) return;
+
+      // Visual e inventario con leve profundidad al scrollear (parallax sutil)
+      gsap.to('[data-visual]', { yPercent: -5, ease: 'none',
+        scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true } });
+      gsap.to('[data-panel]', { yPercent: -16, ease: 'none',
+        scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true } });
+
+      // La plataforma: el scroll AVANZA el módulo en el dispositivo (sala de control)
+      const os = document.querySelector('[data-os]');
+      if (os) {
+        const screens = gsap.utils.toArray('#plataforma [data-os-screen]');
+        const dots = gsap.utils.toArray('#plataforma [data-os-dot]');
+        const prog = document.querySelector('#plataforma [data-os-progress]');
+        const n = screens.length;
+        gsap.set(screens, { autoAlpha: 0, yPercent: 6 });
+        gsap.set(screens[0], { autoAlpha: 1, yPercent: 0 });
+        // Timeline de n unidades: cada módulo OCUPA 1 unidad (se mantiene) y
+        // transiciona en el borde → ritmo uniforme, sin huecos largos en negro.
+        const tl = gsap.timeline({ defaults: { ease: 'power2.inOut' },
+          scrollTrigger: {
+            trigger: os, start: 'top top', end: 'bottom bottom', scrub: 0.4,
+            onUpdate: (self) => {
+              const idx = Math.min(n - 1, Math.floor(self.progress * n * 0.999));
+              dots.forEach((d, i) => d.classList.toggle('is-active', i === idx));
+              if (prog) prog.style.transform = 'scaleY(' + self.progress.toFixed(3) + ')';
+            },
+          } });
+        for (let i = 1; i < n; i++) {
+          // la transición arranca en la unidad i (tras el hold del módulo anterior)
+          tl.to(screens[i - 1], { autoAlpha: 0, yPercent: -6, duration: 0.45 }, i)
+            .fromTo(screens[i], { autoAlpha: 0, yPercent: 6 }, { autoAlpha: 1, yPercent: 0, duration: 0.45 }, i);
+        }
+        tl.to({}, { duration: 0.01 }, n); // hold final → el último módulo no se va a negro
+      }
+
+      // Planning (diagrama vivo): productos entran a la bodega, se ORDENAN en el estante,
+      // y los cables conectan con los nodos de la historia.
+      const plan = document.querySelector('[data-plan]');
+      const box = document.querySelector('[data-plan-box]');
+      if (plan && box) {
+        const chips = gsap.utils.toArray('[data-pchip]');
+        const tiles = gsap.utils.toArray('[data-shelf] [data-ptile]');
+        const wires = gsap.utils.toArray('[data-wires] [data-wire]');
+        const pkts  = gsap.utils.toArray('[data-wires] [data-pkt]');
+        const nodes = gsap.utils.toArray('[data-pnode]');
+
+        // Estados iniciales
+        gsap.set(tiles, { autoAlpha: 0, scale: 0.6, transformOrigin: '50% 50%' });
+        gsap.set(nodes, { autoAlpha: 0, y: 18 });
+        gsap.set(pkts, { autoAlpha: 0 });
+        gsap.set(wires, { autoAlpha: 0 });
+        // Paquetes viajando por cada cable (loop continuo; entrada hacia la bodega, salida desde ella)
+        wires.forEach((w, idx) => {
+          const L = w.getTotalLength();
+          const a = w.getPointAtLength(0);      // extremo en la bodega
+          const b = w.getPointAtLength(L);      // extremo en el nodo
+          const pkt = pkts[idx]; if (!pkt) return;
+          const inbound = pkt.getAttribute('data-pkt') === 'in';
+          const from = inbound ? b : a, to = inbound ? a : b;
+          gsap.set(pkt, { attr: { cx: from.x, cy: from.y } });
+          gsap.fromTo(pkt, { attr: { cx: from.x, cy: from.y } },
+            { attr: { cx: to.x, cy: to.y }, duration: 1.9, ease: 'none', repeat: -1, delay: idx * 0.35 });
+        });
+
+        const br = box.getBoundingClientRect();
+        const bcx = br.left + br.width / 2, bcy = br.top + br.height / 2;
+        const ptl = gsap.timeline({
+          scrollTrigger: { trigger: plan, start: 'top top', end: 'bottom bottom', scrub: 0.5 } });
+
+        // 1) chips vuelan a la bodega y se absorben
+        chips.forEach((c, idx) => {
+          const r = c.getBoundingClientRect();
+          ptl.to(c, {
+            x: bcx - (r.left + r.width / 2), y: bcy - (r.top + r.height / 2),
+            scale: 0.4, autoAlpha: 0, ease: 'power2.in', duration: 0.55,
+          }, idx * 0.05);
+        });
+        // 2) el inventario se ORDENA en el estante (cada tile aparece a medida que llega su producto)
+        tiles.forEach((t, idx) => {
+          ptl.to(t, { autoAlpha: 1, scale: 1, ease: 'back.out(1.7)', duration: 0.4 }, 0.15 + idx * 0.05);
+        });
+        // 3) la bodega late al quedar ordenada
+        ptl.to(box, { scale: 1.03, duration: 0.35, ease: 'power2.out' }, 0.7)
+           .to(box, { scale: 1, duration: 0.3 }, '>');
+        // 4) los cables aparecen conectando la bodega con cada nodo
+        wires.forEach((w, idx) => {
+          ptl.to(w, { autoAlpha: 1, ease: 'power1.inOut', duration: 0.5 }, 0.95 + idx * 0.12);
+        });
+        ptl.to(pkts, { autoAlpha: 1, duration: 0.4 }, 1.15);
+        // 5) los nodos de la historia se revelan en secuencia
+        nodes.forEach((nd, idx) => {
+          ptl.to(nd, { autoAlpha: 1, y: 0, ease: 'expo.out', duration: 0.5 }, 1.1 + idx * 0.28);
+        });
+        ptl.to({}, { duration: 0.4 }); // hold final
+      }
+    });
+  }
+
+  // El fondo de la página muta de color entre secciones (oscuro → gris → blanco → oscuro).
+  // Sin pins: funciona con cualquier altura de contenido, en todos los tamaños.
+  function bgMorph() {
+    if (reduced) return;
+    const css = getComputedStyle(document.documentElement);
+    const v = (name) => css.getPropertyValue(name).trim();
+
+    const stops = [
+      { trigger: '#desafios',     to: v('--surface-light'), deco: 0 },
+      { trigger: '#planning',     to: v('--bg-primary'),    deco: 0 },
+      { trigger: '#plataforma',   to: v('--bg-primary'),    deco: 0 },
+      { trigger: '#arquitectura', to: v('--bg-primary'),    deco: 0 },
+    ];
+
+    let prev = v('--bg-primary');
+    let prevDeco = 0.35;
+    stops.forEach((s) => {
+      const st = { trigger: s.trigger, start: 'top 78%', end: 'top 28%', scrub: true };
+      gsap.fromTo('[data-bgmorph]', { backgroundColor: prev },
+        { backgroundColor: s.to, ease: 'none', immediateRender: false, scrollTrigger: st });
+      gsap.fromTo('.deco', { opacity: prevDeco },
+        { opacity: s.deco, ease: 'none', immediateRender: false, scrollTrigger: { ...st } });
+      prev = s.to;
+      prevDeco = s.deco;
+    });
+  }
+
+  function initMotion() {
+    scenes();
+    bgMorph();
+    magnetic();
+    intro();
+    ScrollTrigger.refresh();
+  }
+  document.addEventListener('astro:page-load', initMotion);
+  window.addEventListener('load', () => ScrollTrigger.refresh());
+</script>
+
+<style>
+  /* ════ Atmósfera ════ */
+  /* Atmósfera mínima: solo una retícula tenue en la parte alta. Sin auroras. */
+  .deco {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--border) 40%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--border) 40%, transparent) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(70% 55% at 50% 0%, #000 0%, transparent 72%);
+    opacity: 0.35;
+  }
+
+  .kicker {
+    display: inline-block; font-size: var(--text-xs); font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent);
+  }
+
+  /* ════ Botones ════ */
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.55em;
+    font-family: var(--font-body); font-weight: 500; font-size: var(--text-sm);
+    padding: 0.75em 1.4em; border-radius: var(--radius-full); text-decoration: none;
+    border: 1px solid transparent;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast),
+                color var(--transition-fast), box-shadow var(--transition-fast);
+    will-change: transform;
+  }
+  .btn--primary {
+    background: var(--accent); color: var(--bg-primary); border-color: var(--accent);
+    box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .btn--primary:hover { background: var(--accent-hover); box-shadow: 0 8px 30px color-mix(in srgb, var(--accent) 30%, transparent); }
+  .btn--ghost { background: transparent; color: var(--text-primary); border-color: color-mix(in srgb, var(--border) 95%, transparent); }
+  .btn--ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn--ghost span { transition: transform var(--transition-fast); }
+  .btn--ghost:hover span { transform: translateX(4px); }
+  .btn--lg { font-size: var(--text-base); padding: 0.85em 1.8em; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 0.6em;
+    font-size: var(--text-xs); font-weight: 500; letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    padding: 0.5em 1em; border-radius: var(--radius-full);
+    border: 1px solid color-mix(in srgb, var(--border) 95%, transparent);
+    background: color-mix(in srgb, var(--bg-secondary) 60%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .chip i {
+    width: 7px; height: 7px; border-radius: var(--radius-full);
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: chip-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes chip-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  /* ════ HERO (dividido en 2) ════ */
+  .hero { position: relative; padding-top: clamp(6.5rem, 16vh, 9.5rem); overflow: hidden; }
+  .hero__grid {
+    display: grid; grid-template-columns: 1fr;
+    gap: var(--space-lg);
+    align-items: center;
+  }
+  .hero__copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-md); }
+  .hero__title {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(2.1rem, 3.6vw, 3.4rem);
+    line-height: 1.08; letter-spacing: -0.03em;
+    color: var(--text-primary);
+    max-width: 19ch;
+  }
+  .hero__title em {
+    font-style: normal;
+    background: linear-gradient(100deg, var(--accent), var(--accent-hover));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero__lead {
+    font-size: var(--text-base);
+    color: var(--text-secondary); line-height: 1.7; max-width: 50ch;
+  }
+  .hero__insights { list-style: none; display: grid; gap: 0.7em; }
+  .hero__insights li {
+    display: flex; gap: 0.7em; align-items: flex-start;
+    font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.55;
+    max-width: 52ch;
+  }
+  .hero__insights strong { color: var(--text-primary); font-weight: 600; }
+  .insight__check {
+    flex-shrink: 0; width: 1.35em; height: 1.35em; margin-top: 0.1em;
+    display: grid; place-items: center;
+    color: var(--accent); border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--accent) 13%, transparent);
+  }
+  .insight__check svg { width: 0.75em; height: 0.75em; }
+  .hero__cta { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-xs); }
+
+  /* ── Visual derecha: imagen Magnific a sangre + panel superpuesto ── */
+  .hero__visual { position: relative; }
+  .visual {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    height: 100%;
+  }
+  .visual img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .visual__cap {
+    position: absolute; top: var(--space-sm); left: var(--space-sm);
+    display: inline-flex; align-items: center; gap: 0.55em;
+    font-family: var(--font-mono); font-size: var(--text-xs);
+    color: var(--text-primary);
+    padding: 0.45em 0.9em; border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--bg-primary) 64%, transparent);
+    backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  }
+  .visual__dot {
+    width: 6px; height: 6px; border-radius: var(--radius-full);
+    background: var(--accent);
+    animation: chip-pulse 2.4s ease-in-out infinite;
+  }
+
+  .panel {
+    position: absolute;
+    left: clamp(-4rem, -8%, -1rem); bottom: clamp(-3rem, -6%, -1rem);
+    width: min(92%, 460px);
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--bg-secondary) 96%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--border));
+    box-shadow: 0 34px 90px rgba(0, 0, 0, 0.55);
+    transform-origin: center bottom;
+    will-change: transform;
+  }
+  /* Línea de escaneo sutil */
+  .panel__scan {
+    position: absolute; left: 0; right: 0; height: 72px; z-index: 1; pointer-events: none;
+    background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 7%, transparent), transparent);
+    animation: scan 5.5s var(--ease-expo) infinite;
+  }
+  @keyframes scan { 0% { top: -80px; } 60%, 100% { top: 110%; } }
+
+  .panel__bar {
+    display: flex; align-items: center; gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border);
+  }
+  .panel__brand {
+    display: inline-flex; align-items: center; gap: 0.6em;
+    font-size: var(--text-sm); font-weight: 600; color: var(--text-primary);
+  }
+  .panel__brand img { display: block; }
+  .panel__pill {
+    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary);
+    padding: 0.35em 0.8em; border: 1px solid var(--border); border-radius: var(--radius-full);
+  }
+  .panel__pill--accent { margin-left: auto; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+  .panel__head, .prow {
+    display: grid; grid-template-columns: 1.5fr 1.7fr 0.6fr 0.9fr; gap: var(--space-sm);
+    align-items: center; padding: 0.8em var(--space-md);
+  }
+  .panel__head {
+    font-size: var(--text-xs); letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-secondary); border-bottom: 1px solid var(--border);
+  }
+  .panel__rows { list-style: none; }
+  .prow { border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); transition: background-color var(--transition-fast); }
+  .prow:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  .prow:last-child { border-bottom: none; }
+  .prow__name { color: var(--text-primary); font-weight: 500; font-size: var(--text-sm); }
+  .prow__sku { color: var(--text-secondary); font-family: var(--font-mono); font-size: var(--text-xs); }
+  .prow__stock { color: var(--text-primary); font-family: var(--font-mono); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+  .tag { font-size: var(--text-xs); font-weight: 600; padding: 0.32em 0.75em; border-radius: var(--radius-full); text-align: center; }
+  .tag--ok      { color: var(--accent);  background: color-mix(in srgb, var(--accent) 15%, transparent); }
+  .tag--bajo    { color: var(--warning); background: color-mix(in srgb, var(--warning) 15%, transparent); }
+  .tag--critico { color: var(--danger);  background: color-mix(in srgb, var(--danger) 15%, transparent); }
+
+  /* ════ Cintas transportadoras ════ */
+  .conveyor {
+    margin-top: clamp(var(--space-lg), 8vh, var(--space-xl));
+    padding-block: var(--space-sm);
+    border-block: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    background:
+      repeating-linear-gradient(90deg,
+        color-mix(in srgb, var(--border) 35%, transparent) 0 2px, transparent 2px 26px);
+    overflow: hidden;
+  }
+  .conveyor--alt { margin-top: 0; }
+  .conveyor__track { display: flex; gap: var(--space-sm); width: max-content; will-change: transform; padding-block: 0.4rem; }
+  .crate {
+    display: inline-flex; align-items: center; gap: 0.7em;
+    padding: 0.6em 1em;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+    border: 1px solid var(--border);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+  }
+  .crate__dot { width: 7px; height: 7px; border-radius: var(--radius-full); }
+  .crate__dot--ok      { background: var(--accent); }
+  .crate__dot--bajo    { background: var(--warning); }
+  .crate__dot--critico { background: var(--danger); }
+  .crate__name { font-size: var(--text-sm); font-weight: 500; color: var(--text-primary); }
+  .crate__sku  { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); }
+  .crate__qty  { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent); }
+
+  /* ════ Underlay de color: el fondo de la página muta entre secciones ════ */
+  .bgmorph {
+    position: fixed; inset: 0; z-index: -2;
+    background-color: var(--bg-primary);
+    will-change: background-color;
+  }
+
+  /* ════ SECCIONES CLARAS (transparentes: el color lo pone el morph) ════ */
+  .stack { position: relative; }
+  .sheet { position: relative; }
+  .sheet__inner { width: 100%; padding-block: clamp(var(--space-xl), 16vh, var(--space-2xl)); }
+
+  /* Tipografía sobre superficies claras */
+  .sheet .kicker { color: var(--accent-ink); }
+  .sheet .shead h2 { color: var(--text-on-light); }
+  .sheet .shead p { color: var(--text-on-light-soft); }
+
+  .shead { max-width: 60ch; display: flex; flex-direction: column; gap: var(--space-sm); margin-bottom: var(--space-lg); }
+  .shead h2 {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(1.7rem, 3.4vw, 2.7rem); line-height: 1.08; letter-spacing: -0.03em;
+    color: var(--text-primary);
+  }
+  .shead p { color: var(--text-secondary); font-size: var(--text-base); line-height: 1.7; max-width: 54ch; }
+  .shead--tight { margin-bottom: 0; }
+
+  /* ── Ledger de desafíos: cifra fantasma gigante + regla que se dibuja ── */
+  .ledger { list-style: none; min-width: 0; }
+  .ledger__row {
+    --rule: 100%;
+    position: relative;
+    display: grid; grid-template-columns: 1fr; gap: var(--space-sm);
+    min-width: 0;
+    padding-block: var(--space-lg);
+    transition: transform var(--transition-fast);
+  }
+  .ledger__row:hover { transform: translateX(8px); }
+  .ledger__row::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: var(--rule); height: 1px;
+    background: linear-gradient(to right, color-mix(in srgb, var(--accent-ink) 60%, transparent), var(--border-on-light));
+  }
+  /* Número como elemento gráfico (§15.5): cifra fantasma de outline */
+  .ledger__ghost {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(3rem, 11vw, 5.5rem);
+    line-height: 0.92; letter-spacing: -0.04em;
+    color: color-mix(in srgb, var(--accent-ink) 9%, transparent);
+    -webkit-text-stroke: 1px color-mix(in srgb, var(--accent-ink) 34%, transparent);
+    transition: color var(--transition-fast);
+  }
+  .ledger__row:hover .ledger__ghost { color: color-mix(in srgb, var(--accent-ink) 22%, transparent); }
+  .ledger__body { display: grid; gap: var(--space-xs); min-width: 0; }
+  .ledger__row h3 {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(var(--text-lg), 2.2vw, var(--text-xl));
+    letter-spacing: -0.02em; color: var(--text-on-light);
+  }
+  .ledger__row p { color: var(--text-on-light-soft); font-size: var(--text-sm); line-height: 1.7; max-width: 52ch; }
+
+  /* ════ 02 · DESAFÍOS: narrativa sticky + ledger ════ */
+  .desa { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); align-items: start; }
+  .desa__aside { position: relative; display: grid; gap: var(--space-md); min-width: 0; }
+  /* Glow esmeralda decorativo detrás de la narrativa (textura/profundidad) */
+  .desa__aside::before {
+    content: '';
+    position: absolute; z-index: -1;
+    left: -10%; top: -8%; width: 70%; aspect-ratio: 1;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent), transparent 68%);
+    filter: blur(40px); pointer-events: none;
+  }
+  .desa__img {
+    position: relative; min-width: 0;
+    border-radius: var(--radius-lg); overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border-on-light));
+    box-shadow: 0 24px 60px rgba(10, 20, 23, 0.22),
+                0 0 32px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  .desa__img img {
+    display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover;
+    transform: scale(1.02);
+    transition: transform 0.9s var(--ease-expo);
+  }
+  .desa__img:hover img { transform: scale(1.06); }
+  /* Scrim inferior: integra la imagen al fondo y da legibilidad a la caption */
+  .desa__img::after {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(to top,
+      color-mix(in srgb, var(--bg-primary) 78%, transparent) 0%,
+      transparent 42%);
+  }
+  .desa__img figcaption {
+    position: absolute; left: var(--space-sm); bottom: var(--space-sm); z-index: 1;
+    font-family: var(--font-mono); font-size: var(--text-xs);
+    color: var(--text-primary);
+    padding: 0.45em 0.9em; border-radius: var(--radius-full);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    background: color-mix(in srgb, var(--bg-primary) 62%, transparent);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ════ 03b · RECORRIDO PINNEADO — SALA DE CONTROL OSCURA ════ */
+  .os-sec {
+    position: relative;
+    /* ⚠ NO usar overflow:hidden aquí — rompe el position:sticky del stage */
+    background:
+      radial-gradient(120% 75% at 50% -8%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%),
+      var(--bg-primary);
+    color: var(--text-primary);
+    padding-block: clamp(var(--space-xl), 14vh, var(--space-2xl));
+  }
+  /* Scanlines de monitor (textura sutil) */
+  .os-sec__grain {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.4;
+    background-image: repeating-linear-gradient(to bottom,
+      color-mix(in srgb, #fff 4%, transparent) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  .os-sec .container { position: relative; z-index: 1; }
+  .os-sec .shead h2 { color: var(--text-primary); }
+  .os-sec .shead p { color: var(--text-secondary); }
+  .os-sec .kicker { color: var(--accent); }
+
+  /* Base (móvil y reduced-motion): pantallas apiladas, estáticas */
+  .os { position: relative; z-index: 1; }
+  .os__inner { display: grid; gap: var(--space-lg); margin-top: var(--space-lg); }
+  .os__rail { display: none; }
+  .os__device {
+    position: relative;
+    border-radius: var(--radius-lg); overflow: hidden;
+    background: color-mix(in srgb, var(--bg-secondary) 88%, #000);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 60px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .os__chrome {
+    display: flex; align-items: center; gap: 0.8em;
+    padding: 0.7em var(--space-md);
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+    background: color-mix(in srgb, #000 28%, transparent);
+  }
+  .os__traffic { display: inline-flex; gap: 0.4em; }
+  .os__traffic i { width: 9px; height: 9px; border-radius: 50%; background: color-mix(in srgb, var(--text-secondary) 45%, transparent); }
+  .os__traffic i:first-child { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .os__app { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); letter-spacing: 0.04em; }
+  .os__live {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 0.45em;
+    font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+  }
+  .os__live i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: chip-pulse 1.8s ease-in-out infinite; }
+  .os__screens { display: grid; gap: var(--space-lg); padding: var(--space-md); }
+  .os__screen { display: grid; gap: var(--space-sm); }
+  .os__sn { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-lg); color: var(--text-primary); }
+  .os__sn b { font-family: var(--font-mono); font-weight: 400; color: var(--accent); margin-right: 0.4em; }
+  .os__desc { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.6; max-width: 52ch; }
+  /* Panel del módulo: superficie que "brilla" sobre el negro */
+  .os__screen .mock {
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-secondary) 72%, #000);
+    box-shadow: inset 0 0 40px color-mix(in srgb, var(--accent) 6%, transparent);
+  }
+
+  /* — Mockups de producto (UI oscura sobre fondo claro) — */
+  .mock {
+    border-radius: var(--radius-lg); overflow: hidden;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 60px rgba(10, 20, 23, 0.18);
+    will-change: transform;
+    transition: transform 0.6s var(--ease-expo), box-shadow 0.6s var(--ease-expo), border-color 0.6s var(--ease-expo);
+  }
+  .mock__bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border);
+    font-size: var(--text-sm); font-weight: 600; color: var(--text-primary);
+  }
+  .mock__id { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent); font-weight: 400; }
+  .mock__body { padding: var(--space-sm) var(--space-md) var(--space-md); display: grid; gap: 0.7em; }
+  .mock__row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm);
+    font-size: var(--text-sm); color: var(--text-primary);
+  }
+  .mock__row strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .mock__row--dim { color: var(--text-secondary); font-size: var(--text-xs); }
+  .mock__meter { height: 4px; border-radius: var(--radius-full); background: color-mix(in srgb, var(--border) 80%, transparent); overflow: hidden; }
+  .mock__meter i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+  .mock__intransit { color: var(--warning); }
+  .mock__total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-top: 1px solid var(--border); padding-top: 0.7em;
+    font-size: var(--text-sm); color: var(--text-primary);
+  }
+  .mock__total strong { color: var(--accent); font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
+  .mock__alert {
+    font-size: var(--text-xs); color: var(--danger);
+    border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+    border-radius: var(--radius-sm); padding: 0.6em 0.9em;
+  }
+  /* Subtítulo dentro del mockup */
+  .mock__sub {
+    font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-secondary);
+    padding-top: 0.5em; border-top: 1px solid var(--border); margin-top: 0.1em;
+  }
+  /* Lista de registros (OC, transferencias, platos) */
+  .oclist { list-style: none; display: grid; gap: 0; }
+  .ocrow {
+    display: grid; grid-template-columns: auto 1fr auto auto; gap: var(--space-sm);
+    align-items: center; padding-block: 0.6em;
+    border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    font-size: var(--text-sm); color: var(--text-primary);
+  }
+  .ocrow:first-child { border-top: none; }
+  .ocrow__id { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent); }
+  .ocrow__prov { color: var(--text-primary); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ocrow__amt { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .badge {
+    justify-self: end; white-space: nowrap;
+    font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.04em;
+    padding: 0.28em 0.7em; border-radius: var(--radius-full);
+    border: 1px solid var(--border); color: var(--text-secondary);
+  }
+  .badge--ok { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .badge--warn { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 45%, transparent); background: color-mix(in srgb, var(--warning) 8%, transparent); }
+  .badge--bad { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+  .badge--neutral { color: var(--text-secondary); }
+
+  /* ════ 03 · EL SISTEMA — planning de inventario (productos → bodega → datos) ════ */
+  .plan-sec {
+    position: relative;
+    background:
+      radial-gradient(100% 60% at 50% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
+      var(--bg-primary);
+    color: var(--text-primary);
+    padding-top: clamp(var(--space-xl), 14vh, var(--space-2xl));
+    padding-bottom: clamp(var(--space-xl), 10vh, var(--space-2xl));
+  }
+  .plan-sec__grain {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.4;
+    background-image: repeating-linear-gradient(to bottom, color-mix(in srgb, #fff 4%, transparent) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+  }
+  .plan__head { position: relative; z-index: 1; text-align: center; max-width: 60ch; }
+  .plan__head .kicker { color: var(--accent); }
+  .plan__title {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(2.3rem, 7vw, 5.2rem); line-height: 1.02; letter-spacing: -0.04em;
+    margin-top: 0.3em; text-wrap: balance;
+  }
+  .plan__lead { margin: var(--space-md) auto 0; max-width: 56ch; color: var(--text-secondary); font-size: var(--text-base); line-height: 1.6; }
+
+  /* Base (móvil / reduced): nube en grid, caja con estante, nodos apilados — estático */
+  .plan { position: relative; z-index: 1; }
+  .plan__inner { display: grid; gap: var(--space-lg); margin-top: var(--space-xl); justify-items: center; }
+  .plan__wires { display: none; }
+  .plan__cloud {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm);
+    width: 100%; max-width: 520px;
+  }
+  .pchip {
+    display: inline-flex; align-items: center; gap: 0.7em;
+    padding: 0.75em 1.15em; border-radius: var(--radius-full);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+    background: color-mix(in srgb, var(--bg-secondary) 80%, #000);
+    font-size: var(--text-base); color: var(--text-primary); white-space: nowrap;
+  }
+  .pchip svg { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
+
+  /* Caja-bodega con inventario ordenado */
+  .plan__box {
+    position: relative; width: 100%; max-width: 520px;
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+    background: color-mix(in srgb, var(--bg-secondary) 88%, #000);
+    box-shadow: 0 0 60px color-mix(in srgb, var(--accent) 16%, transparent);
+    overflow: hidden;
+  }
+  .plan__box-head {
+    display: flex; align-items: center; gap: 0.7em;
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+    background: color-mix(in srgb, #000 26%, transparent);
+  }
+  .plan__box-ico { width: 26px; height: 26px; color: var(--accent); flex-shrink: 0; }
+  .plan__box-label { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-sm); color: var(--text-primary); }
+  .plan__box-tag { margin-left: auto; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  .plan__box-glow { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 40px color-mix(in srgb, var(--accent) 12%, transparent); }
+  .plan__shelf {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+    background: color-mix(in srgb, var(--accent) 14%, var(--border));
+    padding: 1px;
+  }
+  .ptile {
+    display: flex; align-items: center; gap: 0.6em;
+    padding: 0.7em 0.9em; background: color-mix(in srgb, var(--bg-secondary) 88%, #000);
+    font-size: var(--text-sm); color: var(--text-primary);
+  }
+  .ptile svg { width: 18px; height: 18px; color: var(--accent); flex-shrink: 0; }
+  .ptile b { font-weight: 500; }
+  .ptile i { margin-left: auto; font-family: var(--font-mono); font-style: normal; font-size: var(--text-xs); color: var(--text-secondary); }
+
+  /* Nodos de la historia (conectados a la bodega) */
+  .pnode {
+    display: grid; grid-template-columns: auto 1fr; gap: 0.3em var(--space-sm); align-items: baseline;
+    width: 100%; max-width: 520px;
+    padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md);
+    border: 1px solid var(--border); background: color-mix(in srgb, var(--bg-secondary) 60%, transparent);
+  }
+  .pnode__n {
+    grid-row: span 2; font-family: var(--font-mono); font-size: var(--text-base); color: var(--accent);
+  }
+  .pnode--out .pnode__n { color: var(--accent); }
+  .pnode__b h3 { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-base); color: var(--text-primary); }
+  .pnode__b p { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.5; }
+
+  /* flujo de aprobación (1.0) */
+  .approve { list-style: none; display: grid; gap: 0.45em; margin-top: 0.3em; }
+  .approve__step {
+    display: flex; align-items: center; gap: 0.6em;
+    font-size: var(--text-xs); color: var(--text-secondary);
+  }
+  .approve__step i {
+    width: 14px; height: 14px; border-radius: var(--radius-full);
+    border: 1px solid var(--border); flex-shrink: 0;
+  }
+  .approve__step.is-done { color: var(--text-primary); }
+  .approve__step.is-done i { background: var(--accent); border-color: var(--accent); }
+  .approve__step.is-active { color: var(--warning); }
+  .approve__step.is-active i { border-color: var(--warning); animation: chip-pulse 1.8s ease-in-out infinite; }
+
+  /* transferencia en tránsito (2.0) */
+  .transit { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-sm); }
+  .transit__node { display: grid; gap: 0.35em; }
+  .transit__name { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+  .transit__tag {
+    justify-self: start;
+    font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-secondary);
+    padding: 0.25em 0.7em; border: 1px solid var(--border); border-radius: var(--radius-full);
+  }
+  .transit__tag.is-ok { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+  .transit__lane {
+    position: relative; width: clamp(48px, 8vw, 96px); height: 1px;
+    background: var(--border);
+  }
+  .transit__pkg {
+    position: absolute; top: 50%; left: 0;
+    width: 7px; height: 7px; border-radius: var(--radius-full);
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    transform: translateY(-50%);
+    animation: packet 3.2s var(--ease-expo) infinite;
+  }
+  @keyframes packet { 0% { left: 0%; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+
+  /* conteo a ciegas (3.0) */
+  .count { display: inline-flex; align-items: baseline; gap: 0.7em; }
+  .count em { font-style: normal; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .count i { font-style: normal; font-family: var(--font-mono); font-size: var(--text-xs); }
+  .count__ok { color: var(--accent); }
+  .count__bad { color: var(--danger); }
+
+  /* ════ 04 · ARQUITECTURA (oscuro) ════ */
+  .arch { padding-block: clamp(var(--space-xl), 14vh, var(--space-2xl)); }
+  .flow {
+    display: grid; grid-template-columns: 1fr auto 1.2fr auto 1fr;
+    align-items: center; gap: var(--space-sm);
+    margin-block: var(--space-lg);
+  }
+  .flow__node {
+    display: flex; flex-direction: column; align-items: center; gap: 0.4em; text-align: center;
+    padding: var(--space-md) var(--space-sm);
+    border-radius: var(--radius-lg);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+  }
+  .flow__node--core {
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+    box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 8%, transparent);
+    padding-block: var(--space-lg);
+  }
+  .flow__node img { display: block; }
+  .flow__ico { width: 2rem; height: 2rem; color: var(--accent); }
+  .flow__ico svg { width: 100%; height: 100%; }
+  .flow__name { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-sm); color: var(--text-primary); }
+  .flow__tag { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-secondary); }
+  .flow__lane { position: relative; height: 1px; min-width: 36px; background: color-mix(in srgb, var(--accent) 25%, var(--border)); }
+  .flow__lane i {
+    position: absolute; top: 50%; left: 0;
+    width: 7px; height: 7px; border-radius: var(--radius-full);
+    background: var(--accent); box-shadow: 0 0 10px var(--accent);
+    transform: translateY(-50%);
+    animation: packet 2.8s var(--ease-expo) infinite;
+  }
+  .flow__lane--d2 i { animation-delay: 1.4s; }
+
+  .archvals { list-style: none; display: grid; grid-template-columns: 1fr; gap: var(--space-md); }
+  .archval {
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border);
+    display: grid; gap: 0.4em;
+  }
+  .archval__tag { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent); }
+  .archval h3 { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-base); color: var(--text-primary); }
+  .archval p { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.65; }
+
+  /* ════ 05 · ESCALA: stats protagonistas ════ */
+  .scalex { padding-top: clamp(var(--space-xl), 12vh, var(--space-2xl)); border-top: 1px solid var(--border); }
+  .scalex__lead { color: var(--text-secondary); font-size: var(--text-base); margin-bottom: var(--space-lg); }
+  .scalex__grid {
+    display: grid; grid-template-columns: 1fr; gap: var(--space-lg);
+    margin-bottom: clamp(var(--space-lg), 10vh, var(--space-xl));
+  }
+  .stat { display: grid; gap: 0.3em; }
+  .stat__v {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(3rem, 7vw, 5.2rem); line-height: 1; letter-spacing: -0.04em;
+    color: var(--text-primary);
+  }
+  .stat__v em { font-style: normal; font-variant-numeric: tabular-nums; }
+  .stat__l { color: var(--text-secondary); font-size: var(--text-sm); max-width: 30ch; }
+
+  /* ════ ROADMAP ════ */
+  .roadmap { padding-block: var(--space-xl); }
+  .roadmap__grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); align-items: center; }
+
+  .forecast {
+    position: relative; overflow: hidden;
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    background: var(--bg-secondary);
+    border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent);
+    padding: 0.45em 1em; border-radius: var(--radius-full);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    margin-bottom: var(--space-sm);
+  }
+  .badge i { width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--accent); animation: chip-pulse 2s ease-in-out infinite; }
+  .forecast h3 { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-xl); letter-spacing: -0.02em; color: var(--text-primary); margin-bottom: var(--space-sm); }
+  .forecast h3 span { color: var(--accent); }
+  .forecast p { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.7; max-width: 56ch; }
+  .forecast__chart { position: relative; margin-top: var(--space-md); color: var(--accent); }
+  .forecast__chart svg { display: block; width: 100%; height: 96px; }
+  .forecast__dash { opacity: 0.85; }
+  .forecast__label {
+    position: absolute; right: 0; top: -0.4rem;
+    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent);
+  }
+
+  /* ════ FINALE ════ */
+  .finale {
+    position: relative;
+    padding-block: clamp(var(--space-2xl), 22vh, 16rem);
+    text-align: center;
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+  }
+  /* Velo para contraste del texto sobre el shader */
+  .finale::after {
+    content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(60% 70% at 50% 50%, color-mix(in srgb, var(--bg-primary) 55%, transparent), color-mix(in srgb, var(--bg-primary) 82%, transparent));
+  }
+  .finale__inner {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-md);
+    max-width: 720px; margin-inline: auto;
+  }
+  .finale h2 {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(2.1rem, 5vw, 3.8rem); line-height: 1.04; letter-spacing: -0.035em;
+    color: var(--text-primary);
+  }
+  .finale h2 .line { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+  .finale h2 em {
+    font-style: normal;
+    background: linear-gradient(100deg, var(--accent), var(--accent-hover));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .finale p { color: var(--text-secondary); font-size: var(--text-base); line-height: 1.7; max-width: 46ch; }
+  .finale__meta { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.1em; color: var(--text-secondary); }
+
+  /* ════ DESKTOP ════ */
+  @media (min-width: 768px) {
+    .hero__grid { grid-template-columns: 1fr 1.05fr; gap: var(--space-lg); align-items: center; }
+    /* El visual sangra hasta el borde derecho del viewport y ocupa altura real */
+    .hero__visual {
+      height: min(76vh, 680px);
+      margin-right: calc(50% - 50vw);
+    }
+    .visual { border-radius: var(--radius-lg) 0 0 var(--radius-lg); border-right: none; }
+
+    /* Desafíos: narrativa sticky 1fr · ledger 1.2fr (asimétrico) */
+    .desa { grid-template-columns: 1fr 1.2fr; gap: var(--space-xl); }
+    .desa__aside { position: sticky; top: 12vh; }
+    .ledger__row { grid-template-columns: 8rem 1fr; align-items: start; gap: var(--space-lg); }
+    .ledger__ghost { text-align: center; }
+
+    .archvals { grid-template-columns: repeat(3, 1fr); gap: var(--space-lg); }
+    .scalex__grid { grid-template-columns: repeat(3, 1fr); }
+    .roadmap__grid { grid-template-columns: 0.95fr 1.05fr; gap: var(--space-2xl); }
+  }
+
+  /* Recorrido pinneado — solo desktop con motion permitido (fallback: apilado) */
+  @media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+    .os { height: 300vh; }
+    .os__stage { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; }
+    .os__inner { grid-template-columns: 0.62fr 1.38fr; gap: var(--space-2xl); align-items: center; width: 100%; margin-top: 0; }
+    /* En desktop el título/descripción viven en el rail izquierdo → ocultar los del panel */
+    .os__sn, .os__desc { display: none; }
+
+    .os__rail { display: block; position: relative; padding-left: var(--space-md); align-self: center; }
+    .os__rail ol { list-style: none; display: grid; gap: var(--space-lg); }
+    .os__dot {
+      display: grid; grid-template-columns: auto 1fr; gap: 0.9em; align-items: start;
+      color: var(--text-primary); opacity: 0.4;
+      transition: opacity 0.45s var(--ease-expo), transform 0.45s var(--ease-expo);
+    }
+    .os__dot.is-active { opacity: 1; transform: translateX(8px); }
+    .os__dot.is-active .os__rn { text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 65%, transparent); }
+    .os__rn { font-family: var(--font-mono); font-weight: 400; font-size: var(--text-sm); color: var(--accent); padding-top: 0.25em; }
+    .os__rtext { display: grid; gap: 0.35em; min-width: 0; }
+    .os__rlabel {
+      font-family: var(--font-heading); font-weight: 600; font-size: clamp(1.15rem, 1.7vw, 1.55rem);
+      letter-spacing: -0.02em; line-height: 1.1;
+    }
+    /* La descripción se despliega bajo el título solo en el módulo activo */
+    .os__rdesc {
+      font-family: var(--font-body); font-weight: 400; font-size: var(--text-sm);
+      line-height: 1.55; color: var(--text-secondary); max-width: 36ch;
+      opacity: 0; max-height: 0; transform: translateY(-4px); overflow: hidden;
+      transition: opacity 0.45s var(--ease-expo), max-height 0.55s var(--ease-expo), transform 0.45s var(--ease-expo);
+    }
+    .os__dot.is-active .os__rdesc { opacity: 1; max-height: 9em; transform: none; }
+    .os__track { position: absolute; left: 0; top: 0.4em; bottom: 0.4em; width: 2px; background: color-mix(in srgb, var(--accent) 18%, var(--border)); border-radius: 2px; overflow: hidden; }
+    .os__progress { position: absolute; inset: 0; background: var(--accent); transform: scaleY(0); transform-origin: top; box-shadow: 0 0 12px var(--accent); }
+    .os__device { box-shadow: 0 40px 90px rgba(0,0,0,0.55), 0 0 60px color-mix(in srgb, var(--accent) 14%, transparent); }
+    /* Panel más grande: ocupa más alto y la UI respira */
+    .os__screens { position: relative; min-height: clamp(540px, 74vh, 740px); padding: 0; }
+    .os__screen { position: absolute; inset: 0; padding: var(--space-md) var(--space-lg); align-content: center; }
+    /* Escala tipográfica mayor dentro del mockup grande */
+    .os__screen .mock__bar { font-size: var(--text-base); padding: var(--space-md); }
+    .os__screen .mock__body { padding: var(--space-md) var(--space-md) var(--space-md); gap: 0.85em; }
+    .os__screen .mock__row, .os__screen .mock__total { font-size: var(--text-base); }
+    .os__screen .ocrow { font-size: var(--text-sm); gap: 0.7em; }
+    .os__screen .approve__step { font-size: var(--text-sm); }
+    .os__screen .mock__total strong { font-size: var(--text-xl); }
+  }
+
+  /* Planning: diagrama vivo pinneado (productos → bodega ordenada → nodos conectados) */
+  @media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+    .plan { height: 360vh; }
+    .plan__stage { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; }
+    .plan__inner { position: relative; display: block; height: 86vh; margin-top: 0; }
+
+    /* Cables: capa SVG a todo el lienzo, líneas que se dibujan */
+    .plan__wires { display: block; position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+    .wire { fill: none; stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+    .wire__pkt { fill: var(--accent); filter: drop-shadow(0 0 3px var(--accent)); }
+
+    /* Nube: chips dispersos (top/left inline), más grandes */
+    .plan__cloud { position: absolute; inset: 0; display: block; max-width: none; z-index: 2; }
+    .pchip { position: absolute; will-change: transform; font-size: var(--text-base); }
+
+    /* Bodega centrada con su estante de inventario */
+    .plan__box {
+      position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
+      width: clamp(300px, 34vw, 460px); max-width: none; z-index: 3; will-change: transform;
+    }
+    .plan__shelf { grid-template-columns: repeat(2, 1fr); }
+    .ptile { padding: 0.8em 1em; font-size: var(--text-base); }
+    .ptile svg { width: 22px; height: 22px; }
+
+    /* Nodos: posicionados a los lados (left/top inline), conectados por los cables */
+    .pnode {
+      position: absolute; transform: translate(-50%, -50%);
+      width: clamp(190px, 17vw, 230px); max-width: none; z-index: 4;
+      background: color-mix(in srgb, var(--bg-secondary) 82%, #000);
+      border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+    }
+    .pnode--in { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+  }
+
+  /* ════ MOBILE ════ */
+  @media (max-width: 767px) {
+    .hero { padding-top: 6.5rem; }
+    .panel__head, .prow { grid-template-columns: 1.4fr 0.55fr 0.85fr; }
+    .panel__head span:nth-child(2), .prow__sku { display: none; }
+
+    /* Visual: imagen y panel apilados, sin superposición negativa (sin overflow) */
+    .visual { height: auto; }
+    .visual img { height: auto; aspect-ratio: 4 / 3; }
+    .panel { position: relative; left: auto; bottom: auto; width: calc(100% - var(--space-md)); margin: calc(-1 * var(--space-lg)) auto 0; }
+
+    .sheet__inner { padding-block: var(--space-xl); }
+    .desa__img img { aspect-ratio: 16 / 10; }
+
+    /* Flujo de arquitectura en vertical */
+    .flow { grid-template-columns: 1fr; }
+    .flow__lane { width: 1px; height: 36px; min-width: 0; justify-self: center; }
+    .flow__lane i { left: 50%; top: 0; transform: translateX(-50%); animation: packet-v 2.8s var(--ease-expo) infinite; }
+
+    .br-d { display: none; }
+  }
+  @keyframes packet-v { 0% { top: 0%; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panel__scan, .transit__pkg, .flow__lane i, .chip i, .badge i, .approve__step.is-active i { animation: none; }
+    .conveyor__track { width: auto; flex-wrap: wrap; }
+    /* Sin morph de fondo: las secciones claras llevan su color sólido */
+    .sheet--a { background: var(--surface-light); }
+    .sheet--b { background: var(--surface-light-2); }
+  }
+</style>
