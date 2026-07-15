@@ -1,0 +1,310 @@
+---
+// src/pages/centro-de-ayuda/index.astro — Índice del Centro de ayuda (SmartOrder).
+// Hero full-bleed con fondo shader animado (§17) + tarjetas por módulo (cada una
+// enlaza a su propia página) + resumen "Qué hace bien" y "Roadmap".
+import Layout from '../../layouts/Layout.astro';
+import ShaderField from '../../components/ShaderField.astro';
+import site from '../../../contracts/site.json';
+import { withBase } from '../../lib/path.js';
+import { modules, highlights, roadmap, featureCount } from '../../data/help.js';
+
+const seo = {
+  title: 'Centro de ayuda — SmartOrder',
+  description: 'Cómo funciona SmartOrder: guía de módulos y features de la plataforma de abastecimiento e inventario. Compras, inventario, reportes, producción y administración.',
+  googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap',
+  schemaData: {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Centro de ayuda — SmartOrder',
+    description: 'Guía de módulos y features de SmartOrder: cómo funciona la plataforma de abastecimiento e inventario.',
+    isPartOf: { '@type': 'WebSite', name: 'SmartOrder', url: site.site.domain },
+  },
+};
+---
+
+<Layout
+  title={seo.title}
+  description={seo.description}
+  googleFontsUrl={seo.googleFontsUrl}
+  schemaData={seo.schemaData}
+>
+  <!-- Hero full-bleed con fondo animado -->
+  <section class="help-hero">
+    <ShaderField class="help-hero__bg" />
+    <div class="container help-hero__inner">
+      <p class="help-hero__eyebrow">Centro de ayuda</p>
+      <h1 class="help-hero__title">Cómo funciona SmartOrder</h1>
+      <p class="help-hero__lead">
+        Un ERP de logística para gestionar el inventario de bodegas dentro de una cadena de tiendas.
+        La jerarquía operativa es <strong>Empresa → Tiendas → Bodegas</strong>. Elija un módulo para
+        conocer sus funcionalidades en detalle.
+      </p>
+      <div class="help-hero__meta">
+        <span><b>{modules.length}</b> módulos</span>
+        <span><b>{modules.reduce((n, m) => n + featureCount(m), 0)}+</b> funcionalidades</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="container help-body">
+    <!-- Tarjetas por módulo -->
+    <nav class="help-grid" aria-label="Módulos de SmartOrder">
+      {modules.map((m) => (
+        <a class="help-card" href={withBase(`/centro-de-ayuda/${m.id}`)}>
+          <span class="help-card__num">{m.num}</span>
+          <h2 class="help-card__title">{m.title}</h2>
+          <p class="help-card__blurb">{m.blurb}</p>
+          <span class="help-card__foot">
+            {featureCount(m)} {featureCount(m) === 1 ? 'sección' : 'secciones'}
+            <span class="help-card__arrow">Ver módulo →</span>
+          </span>
+        </a>
+      ))}
+    </nav>
+
+    <!-- Recursos descargables -->
+    <div class="help-banners">
+      <a class="help-banner" href={withBase('/centro-de-ayuda/recursos')}>
+        <div>
+          <span class="help-banner__tag">Recursos</span>
+          <h2 class="help-banner__title">Plantilla de carga de productos</h2>
+          <p class="help-banner__blurb">Descarga la plantilla oficial y aprende paso a paso cómo cargar productos simples, recetas, códigos e identificadores en SmartOrder.</p>
+        </div>
+        <span class="help-banner__arrow" aria-hidden="true">→</span>
+      </a>
+
+      <!-- Manual externo: para los proveedores del cliente -->
+      <a class="help-banner" href={withBase('/centro-de-ayuda/proveedores')}>
+        <div>
+          <span class="help-banner__tag">Para tus proveedores</span>
+          <h2 class="help-banner__title">Manual para responder cotizaciones</h2>
+          <p class="help-banner__blurb">Guía paso a paso para que tus proveedores reciban una solicitud, revisen la cotización y aprueben o rechacen productos. Compártela por su enlace.</p>
+        </div>
+        <span class="help-banner__arrow" aria-hidden="true">→</span>
+      </a>
+
+      <!-- Documentación técnica: API de reducción de inventario -->
+      <a class="help-banner" href={withBase('/centro-de-ayuda/api-reduccion')}>
+        <div>
+          <span class="help-banner__tag">Para desarrolladores</span>
+          <h2 class="help-banner__title">API de reducción de inventario</h2>
+          <p class="help-banner__blurb">Documentación técnica para integrar sistemas externos (POS, e-commerce, ERP): autenticación, endpoint, idempotencia, validaciones y ejemplos con cURL.</p>
+        </div>
+        <span class="help-banner__arrow" aria-hidden="true">→</span>
+      </a>
+    </div>
+
+    <!-- Referencia: qué hace bien + roadmap -->
+    <section class="help-ref" aria-labelledby="hace-bien-h">
+      <h2 id="hace-bien-h" class="help-ref__title"><span>✓</span> Qué hace bien hoy</h2>
+      <ul role="list" class="help-cards">
+        {highlights.map((h) => <li class="help-hl">{h}</li>)}
+      </ul>
+    </section>
+
+    <section class="help-ref" aria-labelledby="roadmap-h">
+      <h2 id="roadmap-h" class="help-ref__title"><span>→</span> Roadmap / próximamente</h2>
+      <p class="help-ref__lead">Mejoras identificadas sobre el alcance actual de la plataforma.</p>
+      <ul role="list" class="help-roadmap">
+        {roadmap.map((r) => (
+          <li class="help-roadmap__item">
+            <p class="help-roadmap__next">{r.t}</p>
+            <p class="help-roadmap__now">{r.now}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <aside class="help-cta">
+      <p>¿Necesita ver SmartOrder en su operación?</p>
+      <a href={site.orderUrl} class="help-cta__btn">Solicitar demostración →</a>
+    </aside>
+  </div>
+</Layout>
+
+<style>
+  /* ── Hero full-bleed ────────────────────────────────────── */
+  .help-hero {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(340px, 52vh, 520px);
+    padding-block: var(--space-xl) var(--space-lg);
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  .help-hero__bg { z-index: 0; }
+  .help-hero__inner { position: relative; z-index: 1; max-width: 760px; }
+
+  .help-hero__eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: var(--space-sm);
+  }
+  .help-hero__title {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+  }
+  .help-hero__lead {
+    margin-top: var(--space-sm);
+    font-size: var(--text-lg);
+    line-height: 1.6;
+    color: var(--text-primary);
+    max-width: 60ch;
+  }
+  .help-hero__lead strong { color: var(--accent); font-weight: 500; }
+  .help-hero__meta {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+  .help-hero__meta b { font-family: var(--font-mono); font-weight: 500; color: var(--text-primary); font-size: var(--text-lg); }
+
+  /* Entrada suave del texto del hero (progresiva; con reduced-motion no se anima) */
+  @media (prefers-reduced-motion: no-preference) {
+    .help-hero__inner > * { animation: heroIn 0.8s var(--ease-expo) both; }
+    .help-hero__title { animation-delay: 0.06s; }
+    .help-hero__lead { animation-delay: 0.12s; }
+    .help-hero__meta { animation-delay: 0.18s; }
+    @keyframes heroIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  }
+
+  .help-body { padding-block: var(--space-lg) var(--space-xl); }
+
+  /* ── Tarjetas de módulo ─────────────────────────────────── */
+  .help-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .help-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: var(--space-md);
+    background: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: border-color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
+  }
+  .help-card:hover {
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary));
+    transform: translateY(-3px);
+  }
+  .help-card__num { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--accent); }
+  .help-card__title {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: var(--text-xl);
+    margin: 0.35rem 0 var(--space-xs);
+    letter-spacing: -0.01em;
+  }
+  .help-card__blurb { font-size: var(--text-base); line-height: 1.55; color: var(--text-secondary); flex: 1; }
+  .help-card__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+  }
+  .help-card__arrow { color: var(--accent); transition: transform var(--transition-fast); }
+  .help-card:hover .help-card__arrow { transform: translateX(3px); }
+
+  /* ── Banners de recursos ────────────────────────────────── */
+  .help-banners { display: grid; gap: var(--space-sm); margin-top: var(--space-md); }
+  @media (min-width: 900px) { .help-banners { grid-template-columns: 1fr 1fr; } }
+
+  .help-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+    padding: var(--space-md);
+    background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 12%, var(--bg-secondary)), var(--bg-secondary));
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: var(--radius-lg); text-decoration: none; color: var(--text-primary);
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+  }
+  .help-banner:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .help-banner__tag {
+    display: inline-block; font-family: var(--font-mono); font-size: var(--text-xs);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: var(--space-xs);
+  }
+  .help-banner__title { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-xl); letter-spacing: -0.01em; }
+  .help-banner__blurb { margin-top: var(--space-xs); font-size: var(--text-base); line-height: 1.55; color: var(--text-secondary); max-width: 60ch; }
+  .help-banner__arrow { font-family: var(--font-mono); font-size: var(--text-2xl); color: var(--accent); flex-shrink: 0; transition: transform var(--transition-fast); }
+  .help-banner:hover .help-banner__arrow { transform: translateX(4px); }
+
+  /* ── Referencia ─────────────────────────────────────────── */
+  .help-ref { margin-top: var(--space-lg); }
+  .help-ref__title {
+    display: flex; align-items: center; gap: var(--space-sm);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    letter-spacing: -0.01em;
+    margin-bottom: var(--space-sm);
+  }
+  .help-ref__title span { font-family: var(--font-mono); color: var(--accent); }
+  .help-ref__lead { color: var(--text-secondary); margin-bottom: var(--space-sm); font-size: var(--text-lg); }
+
+  .help-cards { list-style: none; display: grid; gap: var(--space-xs); grid-template-columns: 1fr; }
+  .help-hl {
+    padding: var(--space-sm);
+    background: color-mix(in srgb, var(--bg-secondary) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+    line-height: 1.55;
+  }
+
+  .help-roadmap { list-style: none; display: grid; gap: var(--space-sm); }
+  .help-roadmap__item { padding-left: var(--space-sm); border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+  .help-roadmap__next { font-size: var(--text-lg); font-weight: 500; color: var(--text-primary); line-height: 1.4; }
+  .help-roadmap__now { font-size: var(--text-sm); color: var(--text-secondary); margin-top: 0.25rem; }
+
+  /* ── CTA ────────────────────────────────────────────────── */
+  .help-cta {
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    text-align: center;
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary));
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: var(--radius-lg);
+  }
+  .help-cta p { font-size: var(--text-lg); color: var(--text-primary); margin-bottom: var(--space-sm); }
+  .help-cta__btn {
+    display: inline-block;
+    padding: 0.8rem 1.6rem;
+    background: var(--accent);
+    color: var(--bg-primary);
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: var(--radius-full);
+    transition: background-color var(--transition-fast);
+  }
+  .help-cta__btn:hover { background: var(--accent-hover); }
+
+  @media (min-width: 700px) {
+    .help-grid { grid-template-columns: repeat(2, 1fr); }
+    .help-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1100px) {
+    .help-grid { grid-template-columns: repeat(3, 1fr); gap: var(--space-md); }
+  }
+</style>

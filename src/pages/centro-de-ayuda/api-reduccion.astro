@@ -1,0 +1,962 @@
+---
+// src/pages/centro-de-ayuda/api-reduccion.astro — Documentación técnica: API de reducción de inventario.
+// Fuente: Conocimiento/Api de reduccion/inventory-reduction.md (versión vigente).
+import Layout from '../../layouts/Layout.astro';
+import site from '../../../contracts/site.json';
+import { withBase } from '../../lib/path.js';
+
+const seo = {
+  title: 'API de reducción de inventario — Documentación técnica | SmartOrder',
+  description: 'Guía de integración para descontar stock vía API: autenticación, tenant, modelo de autorización, endpoint, idempotencia, validaciones, códigos de error y ejemplos con cURL.',
+  googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap',
+  schemaData: {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    name: 'API de reducción de inventario — SmartOrder',
+    description: 'Documentación de integración para descontar stock en Smart Order mediante una API key operativa.',
+  },
+};
+
+const sections = [
+  { id: 'intro',           n: '1',  title: 'Introducción' },
+  { id: 'requisitos',      n: '2',  title: 'Requisitos previos' },
+  { id: 'tenant',          n: '3',  title: 'URL base y tenant' },
+  { id: 'auth',            n: '4',  title: 'Autenticación' },
+  { id: 'autorizacion',    n: '5',  title: 'Modelo de autorización' },
+  { id: 'endpoint',        n: '6',  title: 'Endpoint' },
+  { id: 'identificadores', n: '7',  title: 'Identificadores' },
+  { id: 'idempotencia',    n: '8',  title: 'Idempotencia' },
+  { id: 'validaciones',    n: '9',  title: 'Validaciones del servidor' },
+  { id: 'errores',         n: '10', title: 'Códigos de error' },
+  { id: 'practicas',       n: '11', title: 'Buenas prácticas' },
+  { id: 'ejemplos',        n: '12', title: 'Ejemplos completos' },
+];
+---
+
+<Layout
+  title={seo.title}
+  description={seo.description}
+  googleFontsUrl={seo.googleFontsUrl}
+  schemaData={seo.schemaData}
+>
+  <div class="doc container">
+    <nav class="doc-crumbs" aria-label="Ruta">
+      <a href={withBase('/centro-de-ayuda')}>Centro de ayuda</a>
+      <span aria-hidden="true">/</span>
+      <span>API de reducción de inventario</span>
+    </nav>
+
+    <div class="doc-layout">
+      <!-- Índice lateral -->
+      <aside class="doc-side">
+        <button class="doc-side__toggle" type="button" aria-expanded="false" aria-controls="doc-index">
+          <span>En esta página</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <nav id="doc-index" class="doc-side__nav" aria-label="Secciones">
+          <ul role="list" class="doc-side__list">
+            {sections.map((s) => (
+              <li>
+                <a href={`#${s.id}`} class="doc-side__link">
+                  <span class="doc-side__num">{s.n}</span>
+                  {s.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Contenido principal -->
+      <article class="doc-content">
+        <header class="doc-head">
+          <span class="doc-tag">API REST · Documentación de integración</span>
+          <h1>API de reducción de inventario</h1>
+          <p class="doc-lead">
+            Guía para desarrolladores que integran sistemas externos (POS, e-commerce, ERP) con SmartOrder
+            para descontar stock en la bodega de una tienda autorizada, mediante una <strong>API key operativa</strong>
+            creada en el panel del sistema.
+          </p>
+          <div class="endpoint-card">
+            <span class="endpoint-card__method">POST</span>
+            <code class="endpoint-card__path">/api/v1/managed/inventory/reduce-by-sku</code>
+          </div>
+        </header>
+
+        <!-- ── 1. Introducción ── -->
+        <section id="intro" class="step" aria-labelledby="intro-h">
+          <div class="step__head">
+            <span class="step__n">1</span>
+            <h2 id="intro-h">Introducción</h2>
+          </div>
+
+          <p>Esta API permite <strong>descontar stock</strong> en la bodega asociada a una tienda autorizada en tu API key. Cada operación registra movimientos con el tipo indicado por ítem (por defecto <strong>Consumo</strong>) y documento <code>API_INVENTORY_REDUCTION</code>.</p>
+
+          <p>Actualmente existe <strong>un único endpoint</strong>: la reducción se identifica siempre por <strong>código externo del producto</strong> (<code>external_code</code>).</p>
+
+          <div class="callout callout--tip">
+            <strong>Importante:</strong> la bodega <strong>no se envía en el body</strong>. El servidor la resuelve automáticamente según el emparejamiento tienda ↔ bodega configurado en tu API key.
+          </div>
+
+          <h3>Casos de uso típicos</h3>
+          <div class="usecase-grid">
+            <div class="usecase-card">
+              <span class="usecase-card__tag">Punto de venta (POS)</span>
+              <p>Al cerrar un ticket, descuenta los productos vendidos usando el código externo del catálogo.</p>
+            </div>
+            <div class="usecase-card">
+              <span class="usecase-card__tag">E-commerce</span>
+              <p>Cada pedido confirmado reduce stock con el número de orden como <code>reference</code>.</p>
+            </div>
+            <div class="usecase-card">
+              <span class="usecase-card__tag">ERP / sistemas propios</span>
+              <p>Sincroniza consumos y mermas mapeando tus IDs vía <code>external_code</code>.</p>
+            </div>
+            <div class="usecase-card">
+              <span class="usecase-card__tag">Producción / mermas</span>
+              <p>Registra consumo interno o desperdicio clasificado por <code>movement_type</code>.</p>
+            </div>
+          </div>
+
+          <div class="callout callout--example">
+            <p class="callout__title">En una frase</p>
+            <p>Tú controlas <strong>la tienda y los productos</strong>; el servidor decide la bodega y registra el movimiento de forma auditable.</p>
+          </div>
+        </section>
+
+        <!-- ── 2. Requisitos previos ── -->
+        <section id="requisitos" class="step" aria-labelledby="requisitos-h">
+          <div class="step__head">
+            <span class="step__n">2</span>
+            <h2 id="requisitos-h">Requisitos previos</h2>
+          </div>
+          <p>Antes de llamar a este endpoint, tu organización debe tener configurado en el panel del sistema:</p>
+
+          <ol role="list" class="steps-list">
+            <li class="steps-list__item">
+              <span class="steps-list__n">1</span>
+              <div><p><strong>API key de tipo <code>OPERATIVE</code></strong> — una key <code>GENERAL</code> no sirve para esta ruta.</p></div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">2</span>
+              <div><p>El módulo <code>inventory_reduction</code> asignado a esa key.</p></div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">3</span>
+              <div><p>En la configuración del módulo, al menos un par <strong>tienda + bodega</strong> autorizado (<code>store_ids</code> y <code>warehouse_ids</code>, emparejados por índice).</p></div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">4</span>
+              <div><p>Productos dados de alta en la tienda (<strong>tienda / productos</strong>) con <strong>código externo</strong> configurado desde el dashboard, y stock en la bodega configurada.</p></div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">5</span>
+              <div><p><code>external_id</code> configurado en las tiendas que uses en la integración.</p></div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">6</span>
+              <div><p>El <strong>tenant</strong> (identificador de tu instancia) para enviarlo en el header <code>X-Tenant</code> en cada petición.</p></div>
+            </li>
+          </ol>
+
+          <div class="callout callout--warning">
+            <strong>Guarda la key al crearla:</strong> la key en texto plano (<code>rawKey</code>) <strong>solo se muestra una vez</strong> al crearla en el dashboard. Guárdala de forma segura; no se puede recuperar después.
+          </div>
+        </section>
+
+        <!-- ── 3. URL base y tenant ── -->
+        <section id="tenant" class="step" aria-labelledby="tenant-h">
+          <div class="step__head">
+            <span class="step__n">3</span>
+            <h2 id="tenant-h">URL base y tenant</h2>
+          </div>
+          <p>Todas las rutas viven bajo la URL base de la API:</p>
+          <div class="code-block"><code>https://api-demo-dev.smart-order.io/api/v1/managed/inventory/...</code></div>
+          <div class="callout callout--warning">
+            La URL anterior corresponde al entorno de desarrollo actual (<code>api-demo-dev.smart-order.io</code>) y puede cambiar. Verifica siempre la URL vigente con el administrador de tu instancia.
+          </div>
+
+          <p>El <strong>tenant</strong> ya <strong>no</strong> se resuelve por subdominio del host. Se resuelve a partir del header <code>X-Tenant</code>, cuyo valor es el identificador (slug) de tu tenant en Smart Order:</p>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Header</th><th>Valor</th></tr></thead>
+              <tbody>
+                <tr><td><code>X-Tenant</code></td><td>Slug/identificador de tu tenant (ej. <code>demo-dev</code>)</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout--warning">
+            <strong>Importante:</strong> toda petición sin el header <code>X-Tenant</code> (o con un valor que no corresponde a un tenant existente) falla con <span class="http-pill http-pill--401">401</span> y el mensaje <em>"Tenant no especificado en el header X-Tenant"</em> o <em>"Tenant no encontrado"</em>.
+          </div>
+        </section>
+
+        <!-- ── 4. Autenticación ── -->
+        <section id="auth" class="step" aria-labelledby="auth-h">
+          <div class="step__head">
+            <span class="step__n">4</span>
+            <h2 id="auth-h">Autenticación</h2>
+          </div>
+          <p>Incluye el tenant y la API key en <strong>cada</strong> petición:</p>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Header</th><th>Valor</th></tr></thead>
+              <tbody>
+                <tr><td><code>X-Tenant</code></td><td>Slug/identificador de tu tenant</td></tr>
+                <tr><td><code>X-Api-Key</code></td><td>Tu API key completa (texto plano emitido al crearla)</td></tr>
+                <tr><td><code>Content-Type</code></td><td><code>application/json</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Flujo de validación (en orden)</h3>
+          <ol role="list" class="steps-list">
+            <li class="steps-list__item">
+              <span class="steps-list__n">1</span>
+              <div>
+                <h3>TenantMiddleware</h3>
+                <p>Resuelve el tenant por el header <code>X-Tenant</code>. <span class="http-pill http-pill--401">401</span> si no especificado, no encontrado o inactivo.</p>
+              </div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">2</span>
+              <div>
+                <h3>ValidateApiKeyMiddleware</h3>
+                <p>Verifica que la key exista, sea válida y no esté revocada. <span class="http-pill http-pill--401">401</span> si está ausente, inválida o revocada.</p>
+              </div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">3</span>
+              <div>
+                <h3>RequireOperativeKey</h3>
+                <p>La key debe ser de tipo <code>OPERATIVE</code>. <span class="http-pill http-pill--403">403</span> si no lo es.</p>
+              </div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">4</span>
+              <div>
+                <h3>HasApiKeyModule (<code>inventory_reduction</code>)</h3>
+                <p>La key debe tener asignado el módulo de reducción. <span class="http-pill http-pill--403">403</span> si falta.</p>
+              </div>
+            </li>
+            <li class="steps-list__item">
+              <span class="steps-list__n">✓</span>
+              <div>
+                <h3>Validar tienda, productos y stock → descontar</h3>
+                <p>Responde <span class="http-pill http-pill--200">200</span> <code>{'{"ok": true}'}</code> o un error <span class="http-pill http-pill--400">4xx</span>.</p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Condición</th><th>HTTP</th><th>Mensaje típico</th></tr></thead>
+              <tbody>
+                <tr><td>Sin header <code>X-Tenant</code></td><td><span class="http-pill http-pill--401">401</span></td><td><code>Tenant no especificado en el header X-Tenant</code></td></tr>
+                <tr><td><code>X-Tenant</code> no corresponde a un tenant</td><td><span class="http-pill http-pill--401">401</span></td><td><code>Tenant no encontrado</code></td></tr>
+                <tr><td>Sin header <code>X-Api-Key</code></td><td><span class="http-pill http-pill--401">401</span></td><td><code>Unauthorized</code></td></tr>
+                <tr><td>Key inválida, revocada o inexistente</td><td><span class="http-pill http-pill--401">401</span></td><td><code>Unauthorized</code></td></tr>
+                <tr><td>Key no es <code>OPERATIVE</code></td><td><span class="http-pill http-pill--403">403</span></td><td><code>Esta ruta requiere una API key operativa</code></td></tr>
+                <tr><td>Key sin módulo <code>inventory_reduction</code></td><td><span class="http-pill http-pill--403">403</span></td><td><code>La API key no tiene permiso para reducción de inventario</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ── 5. Modelo de autorización ── -->
+        <section id="autorizacion" class="step" aria-labelledby="autorizacion-h">
+          <div class="step__head">
+            <span class="step__n">5</span>
+            <h2 id="autorizacion-h">Modelo de autorización</h2>
+          </div>
+          <p>Al crear o editar la API key en el dashboard, se configuran:</p>
+          <ul role="list" class="doc-bullets">
+            <li><code>store_ids</code>: tiendas autorizadas.</li>
+            <li><code>warehouse_ids</code>: bodegas asociadas, <strong>en el mismo orden</strong> que <code>store_ids</code>.</li>
+          </ul>
+
+          <p>El servidor empareja por <strong>índice</strong>:</p>
+          <div class="code-block"><code>store_ids[0] ↔ warehouse_ids[0]<br/>store_ids[1] ↔ warehouse_ids[1]<br/>...</code></div>
+
+          <p>Cuando envías <code>store_id</code> en el body, el sistema:</p>
+          <ol role="list" class="steps-list steps-list--compact">
+            <li class="steps-list__item"><span class="steps-list__n">1</span><div><p>Resuelve la tienda por <code>store.external_id</code>.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">2</span><div><p>Comprueba que esa tienda esté en <code>store_ids</code> de tu key.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">3</span><div><p>Obtiene la bodega en la misma posición del array.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">4</span><div><p>Descuenta stock <strong>solo en esa bodega</strong>.</p></div></li>
+          </ol>
+
+          <div class="callout callout--warning">
+            <strong>No envíes <code>warehouse_id</code> en el body.</strong> Si la tienda no está autorizada, recibirás <span class="http-pill http-pill--403">403</span> con <em>"La tienda no está autorizada para esta API key"</em>.
+          </div>
+        </section>
+
+        <!-- ── 6. Endpoint ── -->
+        <section id="endpoint" class="step" aria-labelledby="endpoint-h">
+          <div class="step__head">
+            <span class="step__n">6</span>
+            <h2 id="endpoint-h">Endpoint — Reducir por código externo</h2>
+          </div>
+          <p>Descuenta inventario identificando cada ítem por <strong>código externo</strong> en la tienda indicada.</p>
+
+          <div class="endpoint-card">
+            <span class="endpoint-card__method">POST</span>
+            <code class="endpoint-card__path">/api/v1/managed/inventory/reduce-by-sku</code>
+          </div>
+
+          <h3>Body</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Campo</th><th>Tipo</th><th>Req.</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><code>store_id</code></td><td>string</td><td><span class="badge badge--required">Sí</span></td><td>ID externo de la tienda (<code>store.external_id</code>)</td></tr>
+                <tr><td><code>reference</code></td><td>string</td><td><span class="badge badge--required">Sí</span></td><td>Referencia de idempotencia (ver <a href="#idempotencia">Idempotencia</a>)</td></tr>
+                <tr><td><code>items</code></td><td>array</td><td><span class="badge badge--required">Sí</span></td><td>Lista de productos a descontar (mínimo 1)</td></tr>
+                <tr><td><code>items[].external_code</code></td><td>string</td><td><span class="badge badge--required">Sí</span></td><td>Código externo del producto en la tienda</td></tr>
+                <tr><td><code>items[].quantity</code></td><td>number</td><td><span class="badge badge--required">Sí</span></td><td>Cantidad a descontar; debe ser <code>&gt; 0</code></td></tr>
+                <tr><td><code>items[].movement_type</code></td><td>string</td><td><span class="badge badge--optional">No</span></td><td>Tipo de movimiento: <code>withdrawal</code> (Consumo, por defecto), <code>sale</code> (Venta) o <code>waste</code> (Merma). Clasifica el motivo de la reducción.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout--example">
+            <p class="callout__title">Ejemplo de body</p>
+            <div class="code-block"><pre>{`{
+  "store_id": "TIENDA-CENTRO-01",
+  "reference": "venta-pos-2026-05-15-0042",
+  "items": [
+    { "external_code": "PROD-001", "quantity": 2.5, "movement_type": "sale" },
+    { "external_code": "PROD-002", "quantity": 1 }
+  ]
+}`}</pre></div>
+          </div>
+
+          <h3>Tipos de movimiento</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Valor</th><th>Registro</th><th>Cuándo usarlo</th></tr></thead>
+              <tbody>
+                <tr><td><code>withdrawal</code></td><td>Consumo (por defecto)</td><td>Consumo interno o salida genérica</td></tr>
+                <tr><td><code>sale</code></td><td>Venta</td><td>Descuento por venta (POS / e-commerce)</td></tr>
+                <tr><td><code>waste</code></td><td>Merma</td><td>Desperdicio, caducidad, pérdida</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Respuesta exitosa</h3>
+          <p><span class="http-pill http-pill--200">200 OK</span></p>
+          <div class="code-block"><pre>{`{
+  "ok": true
+}`}</pre></div>
+        </section>
+
+        <!-- ── 7. Identificadores ── -->
+        <section id="identificadores" class="step" aria-labelledby="identificadores-h">
+          <div class="step__head">
+            <span class="step__n">7</span>
+            <h2 id="identificadores-h">Identificadores</h2>
+          </div>
+          <p>Todos los IDs que envías en el body de este endpoint son <strong>IDs externos</strong> de tu sistema, mapeados en Smart Order mediante <code>external_id</code>.</p>
+
+          <h3>Tienda</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Campo</th><th>Origen en Smart Order</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><code>store_id</code></td><td><code>store.external_id</code></td><td>Identificador de tienda en tu ERP/POS</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Producto</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Campo</th><th>Origen en Smart Order</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><code>items[].external_code</code></td><td><code>product_per_store.sku</code></td><td>Código externo del producto en la tienda indicada</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout--tip">
+            El código externo debe existir en la tienda indicada. Coordina con el administrador de tu instancia para que configure el <code>external_id</code> de tiendas y productos que vas a usar en la integración.
+          </div>
+        </section>
+
+        <!-- ── 8. Idempotencia ── -->
+        <section id="idempotencia" class="step" aria-labelledby="idempotencia-h">
+          <div class="step__head">
+            <span class="step__n">8</span>
+            <h2 id="idempotencia-h">Idempotencia</h2>
+          </div>
+          <p>El campo <code>reference</code> es <strong>obligatorio</strong> en cada petición. Evita descontar stock dos veces si reenvías la misma operación (timeouts, reintentos de red, etc.).</p>
+
+          <h3>Comportamiento</h3>
+          <p>Antes de descontar, el servidor busca un movimiento previo con la misma combinación: <code>(reference, API_INVENTORY_REDUCTION, api-key:&lt;id&gt;)</code>.</p>
+          <ul role="list" class="doc-bullets">
+            <li>Si <strong>ya existe</strong> → <span class="http-pill http-pill--200">200</span> con <code>{'{"ok": true}'}</code> sin volver a descontar.</li>
+            <li>Si <strong>no existe</strong> → se procesa la reducción y se registra con esa <code>reference</code>.</li>
+          </ul>
+
+          <h3>Alcance de la idempotencia</h3>
+          <p>La clave es única por: valor de <code>reference</code>, tipo de documento <code>API_INVENTORY_REDUCTION</code> y la API key que realiza la operación (<code>api-key:&lt;uuid&gt;</code>). Dos keys distintas <strong>pueden</strong> usar la misma <code>reference</code> sin conflicto entre sí.</p>
+
+          <div class="callout callout--tip">
+            <p class="callout__title">Recomendación</p>
+            <p>Usa <code>reference</code> con un ID estable de tu sistema (número de pedido, UUID de transacción, etc.). Si recibes <span class="http-pill http-pill--200">200</span> tras un reintento con la misma <code>reference</code>, puedes asumir que la reducción ya se aplicó.</p>
+          </div>
+
+          <div class="code-block"><pre>{`{
+  "reference": "mi-sistema:orden-12345",
+  "store_id": "...",
+  "items": [ /* ... */ ]
+}`}</pre></div>
+        </section>
+
+        <!-- ── 9. Validaciones del servidor ── -->
+        <section id="validaciones" class="step" aria-labelledby="validaciones-h">
+          <div class="step__head">
+            <span class="step__n">9</span>
+            <h2 id="validaciones-h">Validaciones del servidor</h2>
+          </div>
+          <p>Además de autenticación y permisos, el servidor valida los datos de cada ítem antes de descontar. Todas estas devuelven <span class="http-pill http-pill--400">400</span>.</p>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Validación</th><th>Error típico</th></tr></thead>
+              <tbody>
+                <tr><td><code>reference</code> vacío u omitido</td><td><span class="http-pill http-pill--400">400</span> con <code>param</code> <code>reference</code></td></tr>
+                <tr><td>Código externo vacío</td><td><code>código externo vacío en ítems</code></td></tr>
+                <tr><td>Cantidad ≤ 0</td><td><code>La cantidad debe ser mayor a 0 para el código externo ...</code></td></tr>
+                <tr><td><code>movement_type</code> inválido</td><td><span class="http-pill http-pill--400">400</span> con <code>param</code> <code>movement_type</code></td></tr>
+                <tr><td>Producto no existe en la tienda</td><td><code>El producto con código externo ... no existe en la tienda</code></td></tr>
+                <tr><td>Producto no asignado a la bodega de la key</td><td><code>El producto con código externo ... no está asignado a la bodega indicada</code></td></tr>
+                <tr><td>Stock insuficiente</td><td><code>Stock insuficiente para el código externo .... Disponible: X, solicitado: Y</code></td></tr>
+                <tr><td><code>store_id</code> desconocido</td><td><code>No se encontró tienda con el store_id indicado</code></td></tr>
+                <tr><td>JSON inválido o campos requeridos faltantes</td><td><span class="http-pill http-pill--400">400</span> con <code>param</code> indicando el campo</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout--tip">
+            <p class="callout__title">Cada movimiento queda registrado con</p>
+            <p><strong>Tipo:</strong> según <code>movement_type</code> de cada ítem (<code>withdrawal</code> → Consumo por defecto, <code>sale</code> → Venta, <code>waste</code> → Merma) · <strong>Tipo de documento:</strong> <code>API_INVENTORY_REDUCTION</code> · <strong>Observación:</strong> incluye el nombre de la API key para trazabilidad.</p>
+          </div>
+        </section>
+
+        <!-- ── 10. Códigos de error ── -->
+        <section id="errores" class="step" aria-labelledby="errores-h">
+          <div class="step__head">
+            <span class="step__n">10</span>
+            <h2 id="errores-h">Códigos de error</h2>
+          </div>
+          <p>Las respuestas de error son un <strong>array JSON</strong>. El campo <code>param</code> solo aparece en errores de validación de entrada (HTTP <span class="http-pill http-pill--400">400</span>).</p>
+
+          <div class="code-block"><pre>{`[
+  {
+    "message": "Descripción del error",
+    "param": "nombre_campo"
+  }
+]`}</pre></div>
+
+          <h3>Tabla de códigos HTTP</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Código</th><th>Cuándo</th></tr></thead>
+              <tbody>
+                <tr><td><span class="http-pill http-pill--200">200</span></td><td>Operación exitosa (o idempotente ya aplicada)</td></tr>
+                <tr><td><span class="http-pill http-pill--400">400</span></td><td>Body inválido, reglas de negocio de entrada, producto no encontrado, stock insuficiente</td></tr>
+                <tr><td><span class="http-pill http-pill--401">401</span></td><td>Sin API key, key inválida, tenant no especificado o no encontrado</td></tr>
+                <tr><td><span class="http-pill http-pill--403">403</span></td><td>Key no operativa, sin módulo, tienda no autorizada, tenant inactivo</td></tr>
+                <tr><td><span class="http-pill http-pill--500">500</span></td><td>Error interno (p. ej. fallo al resolver tenant)</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Mensajes frecuentes de validación (400, con param)</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Mensaje</th><th>param</th></tr></thead>
+              <tbody>
+                <tr><td><code>store_id</code> requerido (binding)</td><td><code>store_id</code></td></tr>
+                <tr><td><code>reference</code> requerido (binding)</td><td><code>reference</code></td></tr>
+                <tr><td><code>external_code</code> requerido (binding)</td><td><code>external_code</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="usecase-grid">
+            <div class="usecase-card">
+              <span class="usecase-card__tag">Error de validación · 400</span>
+              <div class="code-block code-block--sm"><pre>{`[
+  {
+    "message": "Key: 'ReduceStockBySkuRecipe.StoreID' Error:Field validation for 'StoreID' failed on the 'required' tag",
+    "param": "store_id"
+  }
+]`}</pre></div>
+            </div>
+            <div class="usecase-card">
+              <span class="usecase-card__tag">Error de permisos · 403</span>
+              <div class="code-block code-block--sm"><pre>{`[
+  {
+    "message": "La tienda no está autorizada para esta API key"
+  }
+]`}</pre></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 11. Buenas prácticas ── -->
+        <section id="practicas" class="step" aria-labelledby="practicas-h">
+          <div class="step__head">
+            <span class="step__n">11</span>
+            <h2 id="practicas-h">Buenas prácticas</h2>
+          </div>
+
+          <h3>Seguridad</h3>
+          <ul role="list" class="doc-bullets">
+            <li><strong>Nunca</strong> expongas la API key en el frontend ni en repositorios públicos.</li>
+            <li>Rota o desactiva keys comprometidas desde el dashboard.</li>
+            <li>Usa HTTPS en producción.</li>
+          </ul>
+
+          <h3>Diseño de integración</h3>
+          <ol role="list" class="steps-list steps-list--compact">
+            <li class="steps-list__item"><span class="steps-list__n">1</span><div><p><strong>Siempre envía <code>reference</code></strong> con un identificador estable de tu operación.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">2</span><div><p><strong>Agrupa ítems en una sola petición</strong> cuando una venta u operación afecta varios productos (menos latencia, un solo documento de referencia).</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">3</span><div><p><strong>Usa <code>external_code</code></strong> para identificar productos de forma consistente con tu catálogo.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">4</span><div><p><strong>No asumas el <code>warehouse_id</code></strong>: depende de la configuración de la key; solo controlas la tienda mediante <code>store_id</code>.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">5</span><div><p><strong>Mapea tiendas autorizadas</strong> en tu sistema con los <code>external_id</code> configurados en Smart Order y asociados a la key.</p></div></li>
+          </ol>
+
+          <h3>Manejo de errores y reintentos</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Situación</th><th>Acción</th></tr></thead>
+              <tbody>
+                <tr><td><span class="http-pill http-pill--401">401</span></td><td>Revisar el header <code>X-Tenant</code> y la API key. No reintentar sin corregir credenciales.</td></tr>
+                <tr><td><span class="http-pill http-pill--403">403</span></td><td>Revisar tipo de key, módulo y tienda en configuración del dashboard.</td></tr>
+                <tr><td><span class="http-pill http-pill--400">400</span> stock insuficiente</td><td>No reintentar con los mismos datos; sincronizar stock o ajustar cantidades.</td></tr>
+                <tr><td><span class="http-pill http-pill--400">400</span> producto no encontrado</td><td>Verificar códigos externos y tienda antes de reintentar.</td></tr>
+                <tr><td><span class="http-pill http-pill--500">500</span> / timeout de red</td><td>Reintentar con la <strong>misma <code>reference</code></strong> para evitar doble descuento.</td></tr>
+                <tr><td><span class="http-pill http-pill--200">200</span> tras reintento</td><td>Tratar como éxito (idempotencia).</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout--tip">
+            El servidor reintenta internamente hasta 3 veces ante conflictos de serialización en PostgreSQL; aun así, conviene que tu cliente reintente <span class="http-pill http-pill--500">5xx</span> con backoff exponencial.
+          </div>
+
+          <h3>Pruebas</h3>
+          <ol role="list" class="steps-list steps-list--compact">
+            <li class="steps-list__item"><span class="steps-list__n">1</span><div><p>Crear una API key <code>OPERATIVE</code> con módulo <code>inventory_reduction</code> y una tienda de prueba.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">2</span><div><p>Probar reducción con <code>reference</code> fija dos veces → la segunda llamada debe devolver <span class="http-pill http-pill--200">200</span> sin cambiar stock adicional.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">3</span><div><p>Probar tienda no autorizada → <span class="http-pill http-pill--403">403</span>.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">4</span><div><p>Probar cantidad mayor al stock → <span class="http-pill http-pill--400">400</span> con mensaje de stock disponible.</p></div></li>
+            <li class="steps-list__item"><span class="steps-list__n">5</span><div><p>Probar petición sin <code>reference</code> → <span class="http-pill http-pill--400">400</span>.</p></div></li>
+          </ol>
+        </section>
+
+        <!-- ── 12. Ejemplos completos ── -->
+        <section id="ejemplos" class="step" aria-labelledby="ejemplos-h">
+          <div class="step__head">
+            <span class="step__n">12</span>
+            <h2 id="ejemplos-h">Ejemplos completos</h2>
+          </div>
+          <p>Sustituye <code>{'{TENANT}'}</code> por el slug de tu tenant (ej. <code>mi-empresa</code>), <code>{'{API_KEY}'}</code> por tu key operativa, y los IDs externos y códigos por valores reales de tu entorno.</p>
+          <div class="callout callout--warning">
+            La URL base usada abajo (<code>https://api-demo-dev.smart-order.io/api/v1</code>) corresponde al entorno de desarrollo actual y puede cambiar.
+          </div>
+
+          <h3>Reducir por código externo</h3>
+          <div class="code-block"><pre>{`curl -X POST "https://api-demo-dev.smart-order.io/api/v1/managed/inventory/reduce-by-sku" \\
+  -H "X-Tenant: {TENANT}" \\
+  -H "X-Api-Key: {API_KEY}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "store_id": "SUCURSAL-NORTE",
+    "reference": "pos-ticket-10042",
+    "items": [
+      { "external_code": "BEB-001", "quantity": 2, "movement_type": "sale" },
+      { "external_code": "SNK-010", "quantity": 1.5 }
+    ]
+  }'`}</pre></div>
+
+          <p class="step__sublabel">Respuesta exitosa</p>
+          <div class="code-block"><pre>{`{
+  "ok": true
+}`}</pre></div>
+
+          <div class="divider" aria-hidden="true"></div>
+
+          <p class="step__sublabel">Ejemplo de error de validación · 400</p>
+          <div class="code-block"><pre>{`[
+  {
+    "message": "Key: 'ReduceStockBySkuRecipe.StoreID' Error:Field validation for 'StoreID' failed on the 'required' tag",
+    "param": "store_id"
+  }
+]`}</pre></div>
+
+          <p class="step__sublabel" style="margin-top: var(--space-md)">Ejemplo de error de permisos · 403</p>
+          <div class="code-block"><pre>{`[
+  {
+    "message": "La tienda no está autorizada para esta API key"
+  }
+]`}</pre></div>
+        </section>
+
+        <!-- ── Resumen y soporte ── -->
+        <section id="resumen" class="step" aria-labelledby="resumen-h">
+          <div class="step__head">
+            <h2 id="resumen-h">Resumen de un vistazo</h2>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Tema</th><th>Clave</th></tr></thead>
+              <tbody>
+                <tr><td>Endpoint</td><td><code>POST /managed/inventory/reduce-by-sku</code></td></tr>
+                <tr><td>Autenticación</td><td>Headers <code>X-Tenant</code> + <code>X-Api-Key</code></td></tr>
+                <tr><td>Requisito de key</td><td>Tipo <code>OPERATIVE</code> + módulo <code>inventory_reduction</code></td></tr>
+                <tr><td>Bodega</td><td>La resuelve el servidor; nunca se envía en el body</td></tr>
+                <tr><td>Idempotencia</td><td>Envía <code>reference</code> estable por operación (obligatorio)</td></tr>
+                <tr><td>Éxito</td><td><span class="http-pill http-pill--200">200</span> <code>{'{"ok": true}'}</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout--tip" style="margin-top: var(--space-md)">
+            <p class="callout__title">¿Necesitas ayuda?</p>
+            <p>Para configurar <code>external_id</code> en tiendas y el código externo (<code>external_code</code>) de cada producto en la pestaña "producto tienda" del dashboard, coordina con el administrador de tu instancia Smart Order.</p>
+          </div>
+        </section>
+
+        <aside class="doc-cta">
+          <p>¿Tienes preguntas sobre la integración?</p>
+          <a href={site.orderUrl} class="doc-cta__btn">Contactar a SmartOrder →</a>
+        </aside>
+      </article>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* ── Layout base ── */
+  .doc { padding-block: var(--space-lg) var(--space-xl); }
+  .doc-crumbs { display: flex; gap: 0.6rem; align-items: center; font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-md); flex-wrap: wrap; }
+  .doc-crumbs a { color: var(--text-secondary); text-decoration: none; }
+  .doc-crumbs a:hover { color: var(--accent); }
+
+  .doc-layout { display: grid; grid-template-columns: 1fr; gap: var(--space-md); align-items: start; }
+
+  /* ── Sidebar ── */
+  .doc-side__toggle {
+    display: flex; width: 100%; align-items: center; justify-content: space-between; gap: var(--space-xs);
+    padding: 0.75rem var(--space-sm); min-height: 48px;
+    background: var(--bg-secondary); border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: var(--font-body); font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+    position: sticky; top: 0.75rem; z-index: var(--z-above);
+  }
+  .doc-side__toggle svg { transition: transform var(--transition-fast); }
+  .doc-side[data-open] .doc-side__toggle svg { transform: rotate(180deg); }
+  .doc-side__nav {
+    display: none; margin-top: var(--space-sm); padding: var(--space-sm);
+    background: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 40%, transparent); border-radius: var(--radius-md);
+  }
+  .doc-side[data-open] .doc-side__nav { display: block; }
+  .doc-side__list { list-style: none; display: grid; gap: 2px; }
+  .doc-side__link {
+    display: flex; align-items: baseline; gap: 0.5rem; padding: 0.5rem 0.6rem; min-height: 36px; border-radius: var(--radius-sm);
+    color: var(--text-primary); text-decoration: none; font-size: var(--text-sm); line-height: 1.35;
+    border-left: 2px solid transparent; transition: color var(--transition-fast), background-color var(--transition-fast);
+  }
+  .doc-side__num { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent); min-width: 1.4rem; }
+  .doc-side__link:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .doc-side__link[aria-current="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-left-color: var(--accent); }
+
+  /* ── Contenido ── */
+  .doc-content { min-width: 0; max-width: 760px; }
+  .doc-head { margin-bottom: var(--space-md); }
+  .doc-tag {
+    display: inline-block; font-family: var(--font-mono); font-size: var(--text-xs);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
+    padding: 0.3rem 0.7rem; border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    border-radius: var(--radius-full); margin-bottom: var(--space-sm);
+  }
+  .doc-head h1 { font-family: var(--font-heading); font-weight: 600; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.08; letter-spacing: -0.02em; }
+  .doc-lead { font-size: var(--text-lg); line-height: 1.6; color: var(--text-secondary); margin-top: var(--space-sm); }
+
+  .doc-content p { font-size: var(--text-base); line-height: 1.65; color: var(--text-primary); }
+  .doc-content p + p { margin-top: var(--space-sm); }
+  .doc-content strong { font-weight: 500; }
+  .doc-content h3 { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-lg); letter-spacing: -0.01em; margin: var(--space-md) 0 var(--space-xs); }
+
+  /* ── Endpoint card ── */
+  .endpoint-card {
+    display: inline-flex; align-items: center; gap: var(--space-sm); margin-top: var(--space-sm);
+    padding: 0.6rem var(--space-sm);
+    background: color-mix(in srgb, var(--bg-secondary) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    border-radius: var(--radius-md); flex-wrap: wrap;
+  }
+  .endpoint-card__method {
+    font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: 0.04em;
+    padding: 0.25rem 0.55rem; border-radius: var(--radius-sm);
+    background: var(--text-primary); color: var(--bg-primary);
+  }
+  .endpoint-card__path { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); background: none; border: none; padding: 0; }
+
+  /* ── Pasos ── */
+  .step { scroll-margin-top: 5.5rem; margin-top: var(--space-lg); padding-top: var(--space-md); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .step__head { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-sm); }
+  .step__n {
+    display: grid; place-items: center; flex-shrink: 0;
+    width: 2.2rem; height: 2.2rem; border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    font-family: var(--font-mono); color: var(--accent); font-size: var(--text-base);
+  }
+  .step h2 { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-xl); letter-spacing: -0.01em; }
+  .step__sublabel { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: var(--space-xs) !important; }
+
+  /* ── Lista de pasos numerados ── */
+  .steps-list { list-style: none; display: grid; gap: var(--space-sm); margin-top: var(--space-sm); }
+  .steps-list--compact { gap: var(--space-xs); }
+  .steps-list__item { display: flex; align-items: flex-start; gap: var(--space-sm); }
+  .steps-list__n {
+    display: grid; place-items: center; flex-shrink: 0;
+    width: 1.8rem; height: 1.8rem; border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    font-family: var(--font-mono); color: var(--text-secondary); font-size: var(--text-xs);
+    margin-top: 0.1rem;
+  }
+  .steps-list__item h3 { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-base); letter-spacing: -0.01em; margin: 0 0 0.35rem; }
+  .steps-list__item p { margin: 0 !important; font-size: var(--text-sm) !important; color: var(--text-secondary) !important; }
+
+  /* ── Casos de uso ── */
+  .usecase-grid { margin: var(--space-sm) 0; display: grid; gap: var(--space-sm); grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .usecase-grid { grid-template-columns: 1fr 1fr; } }
+  .usecase-card {
+    padding: var(--space-sm) var(--space-md);
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary));
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: var(--radius-md);
+  }
+  .usecase-card__tag {
+    display: block; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.3rem;
+  }
+  .usecase-card p { font-size: var(--text-sm) !important; color: var(--text-secondary) !important; margin: 0 !important; }
+
+  /* ── Badges / pills ── */
+  .badge {
+    display: inline-block; font-family: var(--font-mono); font-size: 0.65rem;
+    letter-spacing: 0.06em; text-transform: uppercase; padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-full); vertical-align: middle;
+  }
+  .badge--required { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+  .badge--optional { background: color-mix(in srgb, var(--text-secondary) 12%, transparent); color: var(--text-secondary); border: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
+
+  .http-pill {
+    display: inline-block; font-family: var(--font-mono); font-size: 0.75em; font-weight: 500;
+    padding: 0.1em 0.5em; border-radius: var(--radius-sm); border: 1px solid; white-space: nowrap;
+  }
+  .http-pill--200 { color: #22c55e; border-color: color-mix(in srgb, #22c55e 40%, transparent); background: color-mix(in srgb, #22c55e 10%, transparent); }
+  .http-pill--400 { color: #f59e0b; border-color: color-mix(in srgb, #f59e0b 40%, transparent); background: color-mix(in srgb, #f59e0b 10%, transparent); }
+  .http-pill--401,
+  .http-pill--403,
+  .http-pill--500 { color: #ef4444; border-color: color-mix(in srgb, #ef4444 40%, transparent); background: color-mix(in srgb, #ef4444 10%, transparent); }
+
+  /* ── Callouts ── */
+  .callout {
+    margin: var(--space-sm) 0; padding: var(--space-sm) var(--space-md);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0; border-left: 2px solid;
+  }
+  .callout p, .callout li { font-size: var(--text-sm) !important; line-height: 1.6 !important; }
+  .callout strong { font-weight: 500; }
+  .callout__title { font-weight: 500 !important; margin-bottom: 0.4rem !important; color: var(--text-primary) !important; }
+
+  .callout--tip {
+    background: color-mix(in srgb, var(--accent) 7%, var(--bg-secondary));
+    border-color: var(--accent);
+  }
+  .callout--warning {
+    background: color-mix(in srgb, #f59e0b 7%, var(--bg-secondary));
+    border-color: #f59e0b;
+  }
+  .callout--warning strong { color: #f59e0b; }
+  .callout--example {
+    background: color-mix(in srgb, var(--bg-secondary) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  }
+
+  /* ── Tablas ── */
+  .table-wrap {
+    position: relative;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    margin: var(--space-sm) 0;
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+    scroll-behavior: smooth;
+  }
+  .table-wrap::after {
+    content: '';
+    position: sticky; right: 0; top: 0;
+    display: block; float: right;
+    width: 56px; height: 100%;
+    margin-left: -56px;
+    background: linear-gradient(to right, transparent, var(--bg-primary) 85%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  }
+  .table-wrap.has-more::after { opacity: 1; }
+  .scroll-hint {
+    display: block; text-align: right;
+    font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-top: 0.3rem;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .scroll-hint.is-hidden { opacity: 0; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); white-space: nowrap; }
+  .data-table th {
+    padding: 0.6rem 0.9rem; text-align: left; font-family: var(--font-mono); font-size: 0.7rem;
+    font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary);
+    background: color-mix(in srgb, var(--bg-secondary) 80%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  }
+  .data-table td {
+    padding: 0.65rem 0.9rem; color: var(--text-primary); line-height: 1.45;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 25%, transparent);
+    white-space: normal;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:nth-child(even) td { background: color-mix(in srgb, var(--bg-secondary) 30%, transparent); }
+
+  /* ── Bloques de código ── */
+  .code-block {
+    margin: var(--space-sm) 0; padding: var(--space-sm) var(--space-md);
+    background: color-mix(in srgb, var(--bg-secondary) 85%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+    border-radius: var(--radius-md); overflow-x: auto;
+  }
+  .code-block--sm { margin: 0.5rem 0 0; }
+  .code-block pre, .code-block code { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); white-space: pre; }
+  .code-block pre { margin: 0; }
+
+  code {
+    font-family: var(--font-mono); font-size: 0.85em; padding: 0.15em 0.4em;
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+    border-radius: var(--radius-sm); color: var(--accent);
+  }
+
+  /* ── Bullets ── */
+  .doc-bullets { list-style: none; display: grid; gap: 0.5rem; margin-top: var(--space-sm); }
+  .doc-bullets > li { position: relative; padding-left: 1.3rem; font-size: var(--text-base); line-height: 1.65; color: var(--text-primary); }
+  .doc-bullets > li::before { content: ""; position: absolute; left: 0.1rem; top: 0.65em; width: 5px; height: 5px; border-radius: var(--radius-full); background: var(--accent); }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: color-mix(in srgb, var(--border) 35%, transparent); margin: var(--space-md) 0; }
+
+  /* ── CTA ── */
+  .doc-cta {
+    margin-top: var(--space-lg); padding: var(--space-md); text-align: center;
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary));
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: var(--radius-lg);
+  }
+  .doc-cta p { font-size: var(--text-lg); color: var(--text-primary); margin-bottom: var(--space-sm); }
+  .doc-cta__btn {
+    display: inline-block; padding: 0.8rem 1.6rem; background: var(--accent); color: var(--bg-primary);
+    font-weight: 600; text-decoration: none; border-radius: var(--radius-full); transition: background-color var(--transition-fast);
+  }
+  .doc-cta__btn:hover { background: var(--accent-hover); }
+
+  /* ── Accesibilidad ── */
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  /* ── Desktop ── */
+  @media (min-width: 1024px) {
+    .doc-layout { grid-template-columns: 240px 1fr; gap: var(--space-lg); }
+    .doc-side { position: sticky; top: var(--space-lg); max-height: calc(100vh - var(--space-lg) * 2); overflow-y: auto; }
+    .doc-side__toggle { display: none; }
+    .doc-side__nav { display: block; margin-top: 0; background: transparent; border: none; padding: 0; }
+  }
+</style>
+
+<script>
+  function initApiReduccion() {
+    const aside = document.querySelector('.doc-side');
+    const nav = document.getElementById('doc-index');
+    const content = document.querySelector('.doc-content');
+    if (!aside || !nav || !content) return;
+
+    const toggle = aside.querySelector('.doc-side__toggle');
+    toggle?.addEventListener('click', () => {
+      const open = aside.hasAttribute('data-open');
+      open ? aside.removeAttribute('data-open') : aside.setAttribute('data-open', '');
+      toggle.setAttribute('aria-expanded', String(!open));
+    });
+    nav.addEventListener('click', (ev) => {
+      if ((ev.target as HTMLElement).closest('a') && window.matchMedia('(max-width: 1023px)').matches) {
+        aside.removeAttribute('data-open');
+        toggle?.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    const links = new Map<string, HTMLAnchorElement>();
+    nav.querySelectorAll('a[href^="#"]').forEach((a) => links.set(a.getAttribute('href')!.slice(1), a as HTMLAnchorElement));
+    const sections = Array.from(content.querySelectorAll('.step'));
+    let current = '';
+    const spy = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          const id = (e.target as HTMLElement).id;
+          if (id === current) continue;
+          links.get(current)?.removeAttribute('aria-current');
+          links.get(id)?.setAttribute('aria-current', 'true');
+          current = id;
+        }
+      }
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach((s) => spy.observe(s));
+
+    function updateScrollHint(wrap: HTMLElement) {
+      const hasMore = wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 4;
+      wrap.classList.toggle('has-more', hasMore);
+      const h = wrap.nextElementSibling;
+      if (h?.classList.contains('scroll-hint')) h.classList.toggle('is-hidden', !hasMore);
+    }
+
+    document.querySelectorAll<HTMLElement>('.table-wrap').forEach((wrap) => {
+      let hint: HTMLElement | null = null;
+      const checkAndInject = () => {
+        const overflows = wrap.scrollWidth > wrap.clientWidth + 4;
+        if (overflows && !hint) {
+          hint = document.createElement('span');
+          hint.className = 'scroll-hint';
+          hint.setAttribute('aria-hidden', 'true');
+          hint.innerHTML = 'desliza &rarr;';
+          wrap.insertAdjacentElement('afterend', hint);
+          wrap.addEventListener('scroll', () => updateScrollHint(wrap), { passive: true });
+        }
+        if (hint) hint.classList.toggle('is-hidden', !overflows);
+        updateScrollHint(wrap);
+      };
+      requestAnimationFrame(checkAndInject);
+      window.addEventListener('resize', checkAndInject, { passive: true });
+    });
+  }
+
+  document.addEventListener('astro:page-load', initApiReduccion);
+</script>

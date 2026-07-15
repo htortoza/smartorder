@@ -1,0 +1,268 @@
+---
+// src/pages/centro-de-ayuda/[modulo].astro — Una página por módulo (SmartOrder).
+// Nav lateral entre módulos (módulo actual resaltado + anclas de sus features) +
+// contenido legible + navegación prev/next. Contenido verbatim (src/data/help.js).
+import Layout from '../../layouts/Layout.astro';
+import site from '../../../contracts/site.json';
+import { withBase } from '../../lib/path.js';
+import { modules } from '../../data/help.js';
+
+export function getStaticPaths() {
+  return modules.map((m, i) => ({
+    params: { modulo: m.id },
+    props: { mod: m, prev: modules[i - 1] ?? null, next: modules[i + 1] ?? null },
+  }));
+}
+
+const { mod, prev, next } = Astro.props;
+
+const seo = {
+  title: `${mod.title} — Centro de ayuda — SmartOrder`,
+  description: mod.blurb,
+  googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap',
+  schemaData: {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: `${mod.title} — SmartOrder`,
+    description: mod.blurb,
+    isPartOf: { '@type': 'WebSite', name: 'SmartOrder', url: site.site.domain },
+  },
+};
+---
+
+<Layout
+  title={seo.title}
+  description={seo.description}
+  googleFontsUrl={seo.googleFontsUrl}
+  schemaData={seo.schemaData}
+>
+  <div class="doc container">
+    <nav class="doc-crumbs" aria-label="Ruta">
+      <a href={withBase('/centro-de-ayuda')}>Centro de ayuda</a>
+      <span aria-hidden="true">/</span>
+      <span>{mod.title}</span>
+    </nav>
+
+    <div class="doc-layout">
+      <!-- Nav lateral entre módulos -->
+      <aside class="doc-side">
+        <button class="doc-side__toggle" type="button" aria-expanded="false" aria-controls="doc-index">
+          <span>Módulos</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <nav id="doc-index" class="doc-side__nav" aria-label="Módulos del centro de ayuda">
+          <ul role="list" class="doc-side__list">
+            {modules.map((m) => (
+              <li>
+                <a
+                  href={withBase(`/centro-de-ayuda/${m.id}`)}
+                  class="doc-side__link doc-side__link--top"
+                  aria-current={m.id === mod.id ? 'page' : undefined}
+                >
+                  <span class="doc-side__num">{m.num}</span>{m.title}
+                </a>
+                {m.id === mod.id && m.subs && (
+                  <ul role="list" class="doc-side__sublist">
+                    {m.subs.map((s) => (
+                      <li><a href={`#${s.id}`} class="doc-side__link doc-side__link--sub">{s.title}</a></li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Contenido del módulo -->
+      <article class="doc-content">
+        <header class="doc-head">
+          <span class="doc-head__num">{mod.num}</span>
+          <h1>{mod.title}</h1>
+          {mod.intro && <p class="doc-lead">{mod.intro}</p>}
+        </header>
+
+        {mod.bullets && (
+          <ul role="list" class="doc-bullets">
+            {mod.bullets.map((b) => (
+              typeof b === 'string'
+                ? <li>{b}</li>
+                : <li>{b.t}<ul role="list" class="doc-bullets doc-bullets--nested">{b.sub.map((x) => <li>{x}</li>)}</ul></li>
+            ))}
+          </ul>
+        )}
+
+        {mod.table && (
+          <table class="doc-table">
+            <thead><tr><th>Sección</th><th>Qué permite configurar</th></tr></thead>
+            <tbody>
+              {mod.table.map((row) => (
+                <tr><th scope="row">{row[0]}</th><td>{row[1]}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {mod.subs && mod.subs.map((s) => (
+          <section id={s.id} class="doc-sub" aria-labelledby={`${s.id}-h`}>
+            <h2 id={`${s.id}-h`}>{s.title}</h2>
+            <ul role="list" class="doc-bullets">
+              {s.bullets.map((b) => (
+                typeof b === 'string'
+                  ? <li>{b}</li>
+                  : <li>{b.t}<ul role="list" class="doc-bullets doc-bullets--nested">{b.sub.map((x) => <li>{x}</li>)}</ul></li>
+              ))}
+            </ul>
+          </section>
+        ))}
+
+        <!-- Prev / next -->
+        <nav class="doc-pager" aria-label="Navegación entre módulos">
+          {prev
+            ? <a class="doc-pager__link doc-pager__link--prev" href={withBase(`/centro-de-ayuda/${prev.id}`)}><span>← Anterior</span><b>{prev.title}</b></a>
+            : <span></span>}
+          {next
+            ? <a class="doc-pager__link doc-pager__link--next" href={withBase(`/centro-de-ayuda/${next.id}`)}><span>Siguiente →</span><b>{next.title}</b></a>
+            : <span></span>}
+        </nav>
+      </article>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .doc { padding-block: var(--space-lg) var(--space-xl); }
+
+  .doc-crumbs { display: flex; gap: 0.6rem; align-items: center; font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-md); }
+  .doc-crumbs a { color: var(--text-secondary); text-decoration: none; }
+  .doc-crumbs a:hover { color: var(--accent); }
+
+  .doc-layout { display: grid; grid-template-columns: 1fr; gap: var(--space-md); align-items: start; }
+
+  /* ── Nav lateral ────────────────────────────────────────── */
+  .doc-side__toggle {
+    display: flex; width: 100%; align-items: center; justify-content: space-between; gap: var(--space-xs);
+    padding: 0.75rem var(--space-sm); min-height: 48px;
+    background: var(--bg-secondary); border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: var(--font-body); font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+    position: sticky; top: 0.75rem; z-index: var(--z-above);
+  }
+  .doc-side__toggle svg { transition: transform var(--transition-fast); }
+  .doc-side[data-open] .doc-side__toggle svg { transform: rotate(180deg); }
+
+  .doc-side__nav {
+    display: none; margin-top: var(--space-sm); padding: var(--space-sm);
+    background: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 40%, transparent); border-radius: var(--radius-md);
+  }
+  .doc-side[data-open] .doc-side__nav { display: block; }
+
+  .doc-side__list { list-style: none; display: grid; gap: 2px; }
+  .doc-side__sublist { list-style: none; display: grid; gap: 2px; margin: 2px 0 var(--space-xs) 1.6rem; }
+  .doc-side__link {
+    display: block; padding: 0.4rem 0.6rem; min-height: 36px; border-radius: var(--radius-sm);
+    color: var(--text-secondary); text-decoration: none; font-size: var(--text-sm); line-height: 1.35;
+    border-left: 2px solid transparent;
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+  }
+  .doc-side__link--top { color: var(--text-primary); font-weight: 500; }
+  .doc-side__num { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent); margin-right: 0.5rem; }
+  .doc-side__link:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .doc-side__link[aria-current="page"],
+  .doc-side__link[aria-current="true"] {
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); border-left-color: var(--accent);
+  }
+
+  /* ── Contenido ──────────────────────────────────────────── */
+  .doc-content { min-width: 0; max-width: 760px; }
+  .doc-head { margin-bottom: var(--space-md); }
+  .doc-head__num { font-family: var(--font-mono); font-size: var(--text-lg); color: var(--accent); }
+  .doc-head h1 {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(2rem, 5vw, 3rem); line-height: 1.08; letter-spacing: -0.02em; margin-top: 0.25rem;
+  }
+  .doc-lead { font-size: var(--text-lg); line-height: 1.6; color: var(--text-secondary); margin-top: var(--space-sm); }
+
+  .doc-sub { scroll-margin-top: 5.5rem; margin-top: var(--space-lg); padding-top: var(--space-md); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .doc-sub h2 { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-xl); margin-bottom: var(--space-sm); }
+
+  .doc-bullets { list-style: none; display: grid; gap: 0.6rem; }
+  .doc-bullets > li { position: relative; padding-left: 1.4rem; font-size: var(--text-base); line-height: 1.65; color: var(--text-primary); }
+  .doc-bullets > li::before { content: ""; position: absolute; left: 0.15rem; top: 0.62em; width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--accent); }
+  .doc-bullets--nested { margin-top: 0.6rem; margin-left: 0.2rem; }
+  .doc-bullets--nested > li { color: var(--text-secondary); }
+  .doc-bullets--nested > li::before { background: var(--text-secondary); width: 5px; height: 5px; }
+
+  .doc-table { width: 100%; border-collapse: collapse; margin: var(--space-sm) 0; font-size: var(--text-sm); }
+  .doc-table th, .doc-table td { text-align: left; padding: 0.7rem 0.9rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 45%, transparent); vertical-align: top; line-height: 1.5; }
+  .doc-table thead th { font-family: var(--font-mono); font-weight: 500; font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+  .doc-table tbody th { color: var(--text-primary); font-weight: 500; }
+  .doc-table tbody td { color: var(--text-secondary); }
+
+  /* ── Pager ──────────────────────────────────────────────── */
+  .doc-pager { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin-top: var(--space-lg); padding-top: var(--space-md); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .doc-pager__link {
+    display: flex; flex-direction: column; gap: 0.2rem; padding: var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent); border-radius: var(--radius-md);
+    text-decoration: none; transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  }
+  .doc-pager__link:hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .doc-pager__link--next { text-align: right; }
+  .doc-pager__link span { font-size: var(--text-xs); font-family: var(--font-mono); color: var(--text-secondary); }
+  .doc-pager__link b { font-weight: 500; color: var(--text-primary); }
+
+  /* ── Desktop: sidebar fijo ──────────────────────────────── */
+  @media (min-width: 1024px) {
+    .doc-layout { grid-template-columns: 260px 1fr; gap: var(--space-lg); }
+    .doc-side { position: sticky; top: var(--space-lg); max-height: calc(100vh - var(--space-lg) * 2); overflow-y: auto; }
+    .doc-side__toggle { display: none; }
+    .doc-side__nav { display: block; margin-top: 0; background: transparent; border: none; padding: 0; }
+  }
+</style>
+
+<script>
+  // Nav lateral: toggle móvil + scrollspy sobre las features del módulo actual.
+  function initDocNav() {
+    const aside = document.querySelector('.doc-side');
+    const nav = document.getElementById('doc-index');
+    const content = document.querySelector('.doc-content');
+    if (!aside || !nav || !content) return;
+
+    const toggle = aside.querySelector('.doc-side__toggle');
+    toggle?.addEventListener('click', () => {
+      const open = aside.hasAttribute('data-open');
+      open ? aside.removeAttribute('data-open') : aside.setAttribute('data-open', '');
+      toggle.setAttribute('aria-expanded', String(!open));
+    });
+    nav.addEventListener('click', (ev) => {
+      const a = (ev.target as HTMLElement).closest('a');
+      // Cierra el drawer solo al elegir un ancla interna (# en la misma página), no al cambiar de módulo
+      if (a && a.getAttribute('href')?.startsWith('#') && window.matchMedia('(max-width: 1023px)').matches) {
+        aside.removeAttribute('data-open');
+        toggle?.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Scrollspy de anclas de features (solo enlaces internos #)
+    const anchors = new Map<string, HTMLAnchorElement>();
+    nav.querySelectorAll('a[href^="#"]').forEach((a) => anchors.set(a.getAttribute('href')!.slice(1), a as HTMLAnchorElement));
+    if (!anchors.size) return;
+    const sections = Array.from(content.querySelectorAll('.doc-sub'));
+    let current = '';
+    const spy = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          const id = (e.target as HTMLElement).id;
+          if (id === current) continue;
+          anchors.get(current)?.removeAttribute('aria-current');
+          anchors.get(id)?.setAttribute('aria-current', 'true');
+          current = id;
+        }
+      }
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach((s) => spy.observe(s));
+  }
+
+  document.addEventListener('astro:page-load', initDocNav);
+</script>
