@@ -1,0 +1,75 @@
+name: Deploy to cPanel (smart-order.io)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package dist
+        run: |
+          cd dist
+          rm -f contact-config.sample.php
+          find . -name .DS_Store -delete
+          cd ..
+          rm -f smartorder-site.zip
+          cd dist && zip -rq ../smartorder-site.zip . -x '*.DS_Store' && cd ..
+
+      - name: Upload zip to cPanel
+        env:
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+        run: |
+          curl -skf -u "$CPANEL_USER:$CPANEL_PASS" \
+            -F 'dir=/home/smartord/public_html' -F 'overwrite=1' \
+            -F 'file-1=@smartorder-site.zip;type=application/zip' \
+            'https://smart-order.io:2083/execute/Fileman/upload_files'
+
+      - name: Extract zip on server
+        env:
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+        run: |
+          curl -skf -u "$CPANEL_USER:$CPANEL_PASS" -G 'https://smart-order.io:2083/json-api/cpanel' \
+            --data-urlencode cpanel_jsonapi_apiversion=2 \
+            --data-urlencode cpanel_jsonapi_module=Fileman \
+            --data-urlencode cpanel_jsonapi_func=fileop \
+            --data-urlencode op=extract \
+            --data-urlencode sourcefiles=/home/smartord/public_html/smartorder-site.zip \
+            --data-urlencode destfiles=/home/smartord/public_html
+
+      - name: Remove remote zip
+        env:
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+        run: |
+          curl -skf -u "$CPANEL_USER:$CPANEL_PASS" -G 'https://smart-order.io:2083/json-api/cpanel' \
+            --data-urlencode cpanel_jsonapi_apiversion=2 \
+            --data-urlencode cpanel_jsonapi_module=Fileman \
+            --data-urlencode cpanel_jsonapi_func=fileop \
+            --data-urlencode op=unlink \
+            --data-urlencode sourcefiles=/home/smartord/public_html/smartorder-site.zip
+
+      - name: Verify deployment
+        run: |
+          code=$(curl -skL -o /dev/null -w '%{http_code}' https://smart-order.io/)
+          echo "https://smart-order.io/ -> HTTP $code"
+          if [ "$code" -ge 400 ]; then exit 1; fi
