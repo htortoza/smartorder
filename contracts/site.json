@@ -13,18 +13,17 @@
     "phone": "",
     "address": "Santiago, Chile"
   },
-  "orderUrl": "#agendar",
+  "orderUrl": "/contacto",
   "navigation": [
     { "label": "Plataforma",   "href": "#plataforma" },
     { "label": "Desafíos",     "href": "#desafios" },
     { "label": "Arquitectura", "href": "#arquitectura" },
-    { "label": "Roadmap",      "href": "#roadmap" }
+    { "label": "Roadmap",      "href": "#roadmap" },
+    { "label": "Contacto",     "href": "/contacto" }
   ],
   "footerLinks": [
-    { "label": "Plataforma",   "href": "#plataforma" },
-    { "label": "Arquitectura", "href": "#arquitectura" },
-    { "label": "Roadmap",      "href": "#roadmap" },
-    { "label": "Contacto",     "href": "mailto:contacto@smartorder.cl" }
+    { "label": "Centro de ayuda", "href": "/centro-de-ayuda" },
+    { "label": "Contacto",        "href": "/contacto" }
   ],
   "theme": {
     "--bg-primary":   "#0a1017",

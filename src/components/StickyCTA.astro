@@ -11,14 +11,25 @@ const orderUrl = site.orderUrl ?? '#';
   class="sticky-cta"
   data-sticky-cta
   aria-label="Solicitar demostración"
+  transition:persist
 >
   <span class="sticky-cta__dot" aria-hidden="true"></span>
   Solicitar demo
 </a>
 
 <script>
-  const cta = document.querySelector('[data-sticky-cta]');
-  if (cta) {
+  function initSticky() {
+    const cta = document.querySelector('[data-sticky-cta]');
+    if (!cta) return;
+
+    // Visible en todo el sitio EXCEPTO en la página de contacto
+    const onContacto = location.pathname.replace(/\/+$/, '') === '/contacto';
+    cta.style.display = onContacto ? 'none' : '';
+    if (onContacto) return;
+
+    if (cta.dataset.bound) return; // elemento persistente: enlazar una sola vez
+    cta.dataset.bound = '1';
+
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const update = () => {
@@ -38,10 +49,10 @@ const orderUrl = site.orderUrl ?? '#';
         cta.classList.add('is-pulsing');
         setTimeout(() => cta.classList.remove('is-pulsing'), 700);
       };
-      const interval = setInterval(pulse, 8000);
-      document.addEventListener('astro:before-swap', () => clearInterval(interval), { once: true });
+      setInterval(pulse, 8000);
     }
   }
+  document.addEventListener('astro:page-load', initSticky);
 </script>
 
 <style>

@@ -2,6 +2,11 @@
 
 Documentación para desarrolladores que integran sistemas externos con Smart Order mediante una **API key operativa** creada en el panel del sistema.
 
+> **Convención de este documento:** los bloques marcados con 🔒 **INTERNO** son configuración/comportamiento
+> interno del backend que el usuario de la API **no necesita conocer** — no copiar esas partes a la página
+> pública del centro de ayuda. Todo lo demás sí es contenido publicable. Ver también el
+> [Historial de correcciones](#historial-de-correcciones-a-este-documento) al final.
+
 ---
 
 ## Tabla de contenidos
@@ -10,7 +15,7 @@ Documentación para desarrolladores que integran sistemas externos con Smart Ord
 2. [Requisitos previos](#requisitos-previos)
 3. [URL base y tenant](#url-base-y-tenant)
 4. [Autenticación](#autenticación)
-5. [Modelo de autorización](#modelo-de-autorización)
+5. [Modelo de autorización](#modelo-de-autorización) 🔒 interno
 6. [Endpoints](#endpoints)
 7. [Identificadores](#identificadores)
 8. [Idempotencia](#idempotencia)
@@ -37,7 +42,7 @@ Antes de llamar a este endpoint, tu organización debe tener:
 
 1. **API key de tipo `OPERATIVE`** (no sirve una key `GENERAL`).
 2. El módulo **`inventory_reduction`** asignado a esa key.
-3. En la configuración del módulo, al menos un par **tienda + bodega** autorizado (`store_ids` y `warehouse_ids`, emparejados por índice).
+3. 🔒 **INTERNO** — En la configuración del módulo, al menos un par **tienda + bodega** autorizado (`store_ids` y `warehouse_ids`, emparejados por índice). *Esto se resuelve al crear la key; el usuario de la API no necesita saberlo — no incluir este punto en la página pública.*
 4. Productos dados de alta en la tienda (**tienda / productos**) con **código externo** configurado desde el dashboard, y stock en la bodega configurada.
 5. `external_id` configurado en las tiendas que uses en la integración.
 6. El **tenant** (identificador de tu instancia) para enviarlo en el header `X-Tenant` en cada petición.
@@ -117,7 +122,12 @@ sequenceDiagram
 
 ---
 
-## Modelo de autorización
+## Modelo de autorización 🔒 INTERNO (no publicar esta sección)
+
+> Esta sección completa es configuración interna de la API key — el usuario de la API no necesita
+> entender el emparejamiento tienda↔bodega. **Lo único que sí va en la página pública** es el aviso al
+> final de esta sección ("No envíes `warehouse_id`..."), como advertencia operativa sin la explicación
+> de por qué.
 
 Al crear o editar la API key en el dashboard, se configuran:
 
@@ -138,6 +148,8 @@ Cuando envías `store_id` en el body, el sistema:
 2. Comprueba que esa tienda esté en `store_ids` de tu key.
 3. Obtiene la bodega en la misma posición del array.
 4. Descuenta stock **solo en esa bodega**.
+
+**✅ Público** — este aviso sí va en la página, dentro de la sección del Endpoint:
 
 **No envíes `warehouse_id` en el body.** Si la tienda no está autorizada, recibirás `403` con *"La tienda no está autorizada para esta API key"*.
 
@@ -217,6 +229,10 @@ El código externo debe existir en la tienda indicada.
 ---
 
 ## Idempotencia
+
+> **Nota de estructura para la página pública:** como `reference` es **obligatorio**, esta sección debe
+> ubicarse justo después de **Endpoints** (antes de **Identificadores**) y no al final como en este
+> documento de referencia — el orden aquí es solo por conveniencia de mantenimiento interno.
 
 El campo **`reference`** es **obligatorio** en cada petición. Evita descontar stock dos veces si reenvías la misma operación (timeouts, reintentos de red, etc.).
 
@@ -329,7 +345,7 @@ El campo `param` solo aparece en errores de validación de entrada (`RecipeError
 
 | Mensaje                              | `param`         |
 | ------------------------------------ | --------------- |
-| `store_id` requerido (binding)       | `store_id`      |
+| `store_id` inválido *(confirmado 2026-07-15 — no es el genérico "requerido (binding)")* | `store_id`      |
 | `reference` requerido (binding)      | `reference`     |
 | `external_code` requerido (binding)  | `external_code` |
 
@@ -415,11 +431,14 @@ curl -X POST "https://api-demo-dev.smart-order.io/api/v1/managed/inventory/reduc
 
 **HTTP `400`**
 
+> **Corregido 2026-07-15** (fuente: Luis Vera, backend). El mensaje real cuando `store_id` falta o es
+> inválido es el de abajo — **no** el mensaje genérico de validación de Go que tenía antes este documento.
+
 ```json
 [
   {
-    "message": "Key: 'ReduceStockBySkuRecipe.StoreID' Error:Field validation for 'StoreID' failed on the 'required' tag",
-    "param": "store_id"
+    "param": "store_id",
+    "message": "store_id inválido"
   }
 ]
 ```
@@ -441,3 +460,16 @@ curl -X POST "https://api-demo-dev.smart-order.io/api/v1/managed/inventory/reduc
 ## Soporte
 
 Para configurar `external_id` en tiendas y el código externo (`external_code`) de cada producto en la pestaña "producto tienda" del dashboard, coordina con el administrador de tu instancia Smart Order o consulta la documentación interna del panel de API keys.
+
+---
+
+## Historial de correcciones a este documento
+
+> Registro de cambios hechos sobre la versión original de este .md, para no repetir los mismos errores
+> al regenerar la página pública (`/centro-de-ayuda/api-reduccion`).
+
+| Fecha       | Cambio                                                                                                                    | Fuente                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| 2026-07-15  | Mensaje real de error para `store_id` faltante/inválido: `{"param":"store_id","message":"store_id inválido"}` — **no** el mensaje genérico de validación de Go que tenía este documento (secciones "Mensajes frecuentes" y "Ejemplo de error de validación"). | Luis Vera (backend)     |
+| 2026-07-15  | Se marcó "Modelo de autorización" (sección completa) y el punto 3 de "Requisitos previos" como 🔒 interno — no se exponen al usuario de la API. Se conserva únicamente el aviso operativo de no enviar `warehouse_id` / 403. | Corrección del cliente  |
+| 2026-07-15  | Idempotencia (`reference`, obligatorio) debe ir inmediatamente después de Endpoints en la página pública, no al final.    | Corrección del cliente  |

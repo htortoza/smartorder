@@ -7,7 +7,7 @@ import { withBase } from '../../lib/path.js';
 
 const seo = {
   title: 'API de reducción de inventario — Documentación técnica | SmartOrder',
-  description: 'Guía de integración para descontar stock vía API: autenticación, tenant, modelo de autorización, endpoint, idempotencia, validaciones, códigos de error y ejemplos con cURL.',
+  description: 'Guía de integración para descontar stock vía API: autenticación, tenant, endpoint, idempotencia, identificadores, validaciones, códigos de error y ejemplos con cURL.',
   googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap',
   schemaData: {
     '@context': 'https://schema.org',
@@ -22,14 +22,13 @@ const sections = [
   { id: 'requisitos',      n: '2',  title: 'Requisitos previos' },
   { id: 'tenant',          n: '3',  title: 'URL base y tenant' },
   { id: 'auth',            n: '4',  title: 'Autenticación' },
-  { id: 'autorizacion',    n: '5',  title: 'Modelo de autorización' },
-  { id: 'endpoint',        n: '6',  title: 'Endpoint' },
+  { id: 'endpoint',        n: '5',  title: 'Endpoint' },
+  { id: 'idempotencia',    n: '6',  title: 'Idempotencia' },
   { id: 'identificadores', n: '7',  title: 'Identificadores' },
-  { id: 'idempotencia',    n: '8',  title: 'Idempotencia' },
-  { id: 'validaciones',    n: '9',  title: 'Validaciones del servidor' },
-  { id: 'errores',         n: '10', title: 'Códigos de error' },
-  { id: 'practicas',       n: '11', title: 'Buenas prácticas' },
-  { id: 'ejemplos',        n: '12', title: 'Ejemplos completos' },
+  { id: 'validaciones',    n: '8',  title: 'Validaciones del servidor' },
+  { id: 'errores',         n: '9',  title: 'Códigos de error' },
+  { id: 'practicas',       n: '10', title: 'Buenas prácticas' },
+  { id: 'ejemplos',        n: '11', title: 'Ejemplos completos' },
 ];
 ---
 
@@ -143,18 +142,14 @@ const sections = [
             </li>
             <li class="steps-list__item">
               <span class="steps-list__n">3</span>
-              <div><p>En la configuración del módulo, al menos un par <strong>tienda + bodega</strong> autorizado (<code>store_ids</code> y <code>warehouse_ids</code>, emparejados por índice).</p></div>
-            </li>
-            <li class="steps-list__item">
-              <span class="steps-list__n">4</span>
               <div><p>Productos dados de alta en la tienda (<strong>tienda / productos</strong>) con <strong>código externo</strong> configurado desde el dashboard, y stock en la bodega configurada.</p></div>
             </li>
             <li class="steps-list__item">
-              <span class="steps-list__n">5</span>
+              <span class="steps-list__n">4</span>
               <div><p><code>external_id</code> configurado en las tiendas que uses en la integración.</p></div>
             </li>
             <li class="steps-list__item">
-              <span class="steps-list__n">6</span>
+              <span class="steps-list__n">5</span>
               <div><p>El <strong>tenant</strong> (identificador de tu instancia) para enviarlo en el header <code>X-Tenant</code> en cada petición.</p></div>
             </li>
           </ol>
@@ -265,38 +260,10 @@ const sections = [
           </div>
         </section>
 
-        <!-- ── 5. Modelo de autorización ── -->
-        <section id="autorizacion" class="step" aria-labelledby="autorizacion-h">
-          <div class="step__head">
-            <span class="step__n">5</span>
-            <h2 id="autorizacion-h">Modelo de autorización</h2>
-          </div>
-          <p>Al crear o editar la API key en el dashboard, se configuran:</p>
-          <ul role="list" class="doc-bullets">
-            <li><code>store_ids</code>: tiendas autorizadas.</li>
-            <li><code>warehouse_ids</code>: bodegas asociadas, <strong>en el mismo orden</strong> que <code>store_ids</code>.</li>
-          </ul>
-
-          <p>El servidor empareja por <strong>índice</strong>:</p>
-          <div class="code-block"><code>store_ids[0] ↔ warehouse_ids[0]<br/>store_ids[1] ↔ warehouse_ids[1]<br/>...</code></div>
-
-          <p>Cuando envías <code>store_id</code> en el body, el sistema:</p>
-          <ol role="list" class="steps-list steps-list--compact">
-            <li class="steps-list__item"><span class="steps-list__n">1</span><div><p>Resuelve la tienda por <code>store.external_id</code>.</p></div></li>
-            <li class="steps-list__item"><span class="steps-list__n">2</span><div><p>Comprueba que esa tienda esté en <code>store_ids</code> de tu key.</p></div></li>
-            <li class="steps-list__item"><span class="steps-list__n">3</span><div><p>Obtiene la bodega en la misma posición del array.</p></div></li>
-            <li class="steps-list__item"><span class="steps-list__n">4</span><div><p>Descuenta stock <strong>solo en esa bodega</strong>.</p></div></li>
-          </ol>
-
-          <div class="callout callout--warning">
-            <strong>No envíes <code>warehouse_id</code> en el body.</strong> Si la tienda no está autorizada, recibirás <span class="http-pill http-pill--403">403</span> con <em>"La tienda no está autorizada para esta API key"</em>.
-          </div>
-        </section>
-
-        <!-- ── 6. Endpoint ── -->
+        <!-- ── 5. Endpoint ── -->
         <section id="endpoint" class="step" aria-labelledby="endpoint-h">
           <div class="step__head">
-            <span class="step__n">6</span>
+            <span class="step__n">5</span>
             <h2 id="endpoint-h">Endpoint — Reducir por código externo</h2>
           </div>
           <p>Descuenta inventario identificando cada ítem por <strong>código externo</strong> en la tienda indicada.</p>
@@ -319,6 +286,10 @@ const sections = [
                 <tr><td><code>items[].movement_type</code></td><td>string</td><td><span class="badge badge--optional">No</span></td><td>Tipo de movimiento: <code>withdrawal</code> (Consumo, por defecto), <code>sale</code> (Venta) o <code>waste</code> (Merma). Clasifica el motivo de la reducción.</td></tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="callout callout--warning">
+            <strong>No envíes <code>warehouse_id</code> en el body.</strong> Si la tienda no está autorizada, recibirás <span class="http-pill http-pill--403">403</span> con <em>"La tienda no está autorizada para esta API key"</em>.
           </div>
 
           <div class="callout callout--example">
@@ -349,6 +320,36 @@ const sections = [
           <p><span class="http-pill http-pill--200">200 OK</span></p>
           <div class="code-block"><pre>{`{
   "ok": true
+}`}</pre></div>
+        </section>
+
+        <!-- ── 6. Idempotencia ── -->
+        <section id="idempotencia" class="step" aria-labelledby="idempotencia-h">
+          <div class="step__head">
+            <span class="step__n">6</span>
+            <h2 id="idempotencia-h">Idempotencia</h2>
+          </div>
+          <p>El campo <code>reference</code> es <strong>obligatorio</strong> en cada petición. Evita descontar stock dos veces si reenvías la misma operación (timeouts, reintentos de red, etc.).</p>
+
+          <h3>Comportamiento</h3>
+          <p>Antes de descontar, el servidor busca un movimiento previo con la misma combinación: <code>(reference, API_INVENTORY_REDUCTION, api-key:&lt;id&gt;)</code>.</p>
+          <ul role="list" class="doc-bullets">
+            <li>Si <strong>ya existe</strong> → <span class="http-pill http-pill--200">200</span> con <code>{'{"ok": true}'}</code> sin volver a descontar.</li>
+            <li>Si <strong>no existe</strong> → se procesa la reducción y se registra con esa <code>reference</code>.</li>
+          </ul>
+
+          <h3>Alcance de la idempotencia</h3>
+          <p>La clave es única por: valor de <code>reference</code>, tipo de documento <code>API_INVENTORY_REDUCTION</code> y la API key que realiza la operación (<code>api-key:&lt;uuid&gt;</code>). Dos keys distintas <strong>pueden</strong> usar la misma <code>reference</code> sin conflicto entre sí.</p>
+
+          <div class="callout callout--tip">
+            <p class="callout__title">Recomendación</p>
+            <p>Usa <code>reference</code> con un ID estable de tu sistema (número de pedido, UUID de transacción, etc.). Si recibes <span class="http-pill http-pill--200">200</span> tras un reintento con la misma <code>reference</code>, puedes asumir que la reducción ya se aplicó.</p>
+          </div>
+
+          <div class="code-block"><pre>{`{
+  "reference": "mi-sistema:orden-12345",
+  "store_id": "...",
+  "items": [ /* ... */ ]
 }`}</pre></div>
         </section>
 
@@ -385,40 +386,10 @@ const sections = [
           </div>
         </section>
 
-        <!-- ── 8. Idempotencia ── -->
-        <section id="idempotencia" class="step" aria-labelledby="idempotencia-h">
-          <div class="step__head">
-            <span class="step__n">8</span>
-            <h2 id="idempotencia-h">Idempotencia</h2>
-          </div>
-          <p>El campo <code>reference</code> es <strong>obligatorio</strong> en cada petición. Evita descontar stock dos veces si reenvías la misma operación (timeouts, reintentos de red, etc.).</p>
-
-          <h3>Comportamiento</h3>
-          <p>Antes de descontar, el servidor busca un movimiento previo con la misma combinación: <code>(reference, API_INVENTORY_REDUCTION, api-key:&lt;id&gt;)</code>.</p>
-          <ul role="list" class="doc-bullets">
-            <li>Si <strong>ya existe</strong> → <span class="http-pill http-pill--200">200</span> con <code>{'{"ok": true}'}</code> sin volver a descontar.</li>
-            <li>Si <strong>no existe</strong> → se procesa la reducción y se registra con esa <code>reference</code>.</li>
-          </ul>
-
-          <h3>Alcance de la idempotencia</h3>
-          <p>La clave es única por: valor de <code>reference</code>, tipo de documento <code>API_INVENTORY_REDUCTION</code> y la API key que realiza la operación (<code>api-key:&lt;uuid&gt;</code>). Dos keys distintas <strong>pueden</strong> usar la misma <code>reference</code> sin conflicto entre sí.</p>
-
-          <div class="callout callout--tip">
-            <p class="callout__title">Recomendación</p>
-            <p>Usa <code>reference</code> con un ID estable de tu sistema (número de pedido, UUID de transacción, etc.). Si recibes <span class="http-pill http-pill--200">200</span> tras un reintento con la misma <code>reference</code>, puedes asumir que la reducción ya se aplicó.</p>
-          </div>
-
-          <div class="code-block"><pre>{`{
-  "reference": "mi-sistema:orden-12345",
-  "store_id": "...",
-  "items": [ /* ... */ ]
-}`}</pre></div>
-        </section>
-
-        <!-- ── 9. Validaciones del servidor ── -->
+        <!-- ── 8. Validaciones del servidor ── -->
         <section id="validaciones" class="step" aria-labelledby="validaciones-h">
           <div class="step__head">
-            <span class="step__n">9</span>
+            <span class="step__n">8</span>
             <h2 id="validaciones-h">Validaciones del servidor</h2>
           </div>
           <p>Además de autenticación y permisos, el servidor valida los datos de cada ítem antes de descontar. Todas estas devuelven <span class="http-pill http-pill--400">400</span>.</p>
@@ -446,10 +417,10 @@ const sections = [
           </div>
         </section>
 
-        <!-- ── 10. Códigos de error ── -->
+        <!-- ── 9. Códigos de error ── -->
         <section id="errores" class="step" aria-labelledby="errores-h">
           <div class="step__head">
-            <span class="step__n">10</span>
+            <span class="step__n">9</span>
             <h2 id="errores-h">Códigos de error</h2>
           </div>
           <p>Las respuestas de error son un <strong>array JSON</strong>. El campo <code>param</code> solo aparece en errores de validación de entrada (HTTP <span class="http-pill http-pill--400">400</span>).</p>
@@ -480,20 +451,20 @@ const sections = [
             <table class="data-table">
               <thead><tr><th>Mensaje</th><th>param</th></tr></thead>
               <tbody>
-                <tr><td><code>store_id</code> requerido (binding)</td><td><code>store_id</code></td></tr>
+                <tr><td><code>store_id</code> inválido</td><td><code>store_id</code></td></tr>
                 <tr><td><code>reference</code> requerido (binding)</td><td><code>reference</code></td></tr>
                 <tr><td><code>external_code</code> requerido (binding)</td><td><code>external_code</code></td></tr>
               </tbody>
             </table>
           </div>
 
-          <div class="usecase-grid">
+          <div class="usecase-grid usecase-grid--stack">
             <div class="usecase-card">
               <span class="usecase-card__tag">Error de validación · 400</span>
               <div class="code-block code-block--sm"><pre>{`[
   {
-    "message": "Key: 'ReduceStockBySkuRecipe.StoreID' Error:Field validation for 'StoreID' failed on the 'required' tag",
-    "param": "store_id"
+    "param": "store_id",
+    "message": "store_id inválido"
   }
 ]`}</pre></div>
             </div>
@@ -508,10 +479,10 @@ const sections = [
           </div>
         </section>
 
-        <!-- ── 11. Buenas prácticas ── -->
+        <!-- ── 10. Buenas prácticas ── -->
         <section id="practicas" class="step" aria-labelledby="practicas-h">
           <div class="step__head">
-            <span class="step__n">11</span>
+            <span class="step__n">10</span>
             <h2 id="practicas-h">Buenas prácticas</h2>
           </div>
 
@@ -560,10 +531,10 @@ const sections = [
           </ol>
         </section>
 
-        <!-- ── 12. Ejemplos completos ── -->
+        <!-- ── 11. Ejemplos completos ── -->
         <section id="ejemplos" class="step" aria-labelledby="ejemplos-h">
           <div class="step__head">
-            <span class="step__n">12</span>
+            <span class="step__n">11</span>
             <h2 id="ejemplos-h">Ejemplos completos</h2>
           </div>
           <p>Sustituye <code>{'{TENANT}'}</code> por el slug de tu tenant (ej. <code>mi-empresa</code>), <code>{'{API_KEY}'}</code> por tu key operativa, y los IDs externos y códigos por valores reales de tu entorno.</p>
@@ -595,8 +566,8 @@ const sections = [
           <p class="step__sublabel">Ejemplo de error de validación · 400</p>
           <div class="code-block"><pre>{`[
   {
-    "message": "Key: 'ReduceStockBySkuRecipe.StoreID' Error:Field validation for 'StoreID' failed on the 'required' tag",
-    "param": "store_id"
+    "param": "store_id",
+    "message": "store_id inválido"
   }
 ]`}</pre></div>
 
@@ -622,7 +593,7 @@ const sections = [
                 <tr><td>Requisito de key</td><td>Tipo <code>OPERATIVE</code> + módulo <code>inventory_reduction</code></td></tr>
                 <tr><td>Bodega</td><td>La resuelve el servidor; nunca se envía en el body</td></tr>
                 <tr><td>Idempotencia</td><td>Envía <code>reference</code> estable por operación (obligatorio)</td></tr>
-                <tr><td>Éxito</td><td><span class="http-pill http-pill--200">200</span> <code>{'{"ok": true}'}</code></td></tr>
+                <tr><td>Éxito</td><td><span class="http-pill http-pill--200">200</span> <code>&#123;"ok": true&#125;</code></td></tr>
               </tbody>
             </table>
           </div>
@@ -741,6 +712,9 @@ const sections = [
   /* ── Casos de uso ── */
   .usecase-grid { margin: var(--space-sm) 0; display: grid; gap: var(--space-sm); grid-template-columns: 1fr; }
   @media (min-width: 640px) { .usecase-grid { grid-template-columns: 1fr 1fr; } }
+  /* Variante apilada: 2 filas de 1 columna, ambas al ancho de la tarjeta más ancha (403) */
+  .usecase-grid--stack { width: fit-content; max-width: 100%; }
+  @media (min-width: 640px) { .usecase-grid.usecase-grid--stack { grid-template-columns: 1fr; } }
   .usecase-card {
     padding: var(--space-sm) var(--space-md);
     background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary));

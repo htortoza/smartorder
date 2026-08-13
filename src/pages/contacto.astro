@@ -1,0 +1,440 @@
+---
+// src/pages/contacto.astro — bespoke (SmartOrder)
+// Página de contacto: formulario a la derecha, columna de conversión (cifras + valor) a la izquierda.
+// Mismo ADN que el home: navy + verde, glass, grain, count-up, CTA magnético. Peso ≤600.
+// El form hace POST a /contact.php (backend en cPanel: crea tarea en ClickUp + notifica por correo).
+import Layout from '../layouts/Layout.astro';
+import site from '../../contracts/site.json';
+
+const seo = {
+  title: 'Contacto — SmartOrder',
+  description: 'Cuéntenos el reto de abastecimiento e inventario de su holding. Le respondemos dentro de 24 horas hábiles con una propuesta de integración a su POS.',
+  googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap',
+  schemaData: {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    name: 'Contacto — SmartOrder',
+    description: 'Formulario de contacto para holdings gastronómicos que buscan centralizar abastecimiento e inventario.',
+  },
+};
+
+// Cifras de confianza (count-up). value = número a animar; suffix opcional; static para no-numéricos.
+const stats = [
+  { num: 100, suffix: '%', label: 'de los movimientos con trazabilidad auditable' },
+  { num: 24,  suffix: ' h', label: 'de respuesta a su solicitud (días hábiles)' },
+  { static: 'Multi', label: 'empresa · marca · bodega, desde un panel' },
+];
+
+// Propuesta de valor / prueba
+const props = [
+  { t: 'Gobernanza financiera', d: 'Aprobación jerárquica de Órdenes de Compra según límites de presupuesto.' },
+  { t: 'Auditoría incorruptible', d: 'Log inmutable por usuario, fecha y sucursal para cada ajuste de stock.' },
+  { t: 'Integración API con su POS', d: 'Deducción automática de recetas (BOM) con cada venta registrada.' },
+  { t: 'Arquitectura multi-empresa', d: 'Múltiples razones sociales y bodegas con permisos granulares.' },
+];
+---
+
+<Layout
+  title={seo.title}
+  description={seo.description}
+  googleFontsUrl={seo.googleFontsUrl}
+  schemaData={seo.schemaData}
+>
+  <!-- ░░ 01 · HERO ░░ -->
+  <section class="chero" aria-label="Contacto">
+    <span class="chero__glow" aria-hidden="true"></span>
+    <span class="chero__grain" aria-hidden="true"></span>
+    <div class="container chero__inner">
+      <span class="chip" data-rv>
+        <i aria-hidden="true"></i>
+        Respondemos en 24 h hábiles
+      </span>
+      <h1 class="chero__title" data-rv>
+        Hablemos de su <em>operación</em>.
+      </h1>
+      <p class="chero__lead" data-rv>
+        Cuéntenos el reto de abastecimiento e inventario de su holding. Revisamos su caso y
+        volvemos con una propuesta de integración concreta para su punto de venta.
+      </p>
+    </div>
+  </section>
+
+  <!-- ░░ 02 · CONVERSIÓN + FORMULARIO ░░ -->
+  <section class="cform" id="formulario" aria-label="Formulario de contacto">
+    <span class="cform__scan" aria-hidden="true"></span>
+    <div class="container cform__grid">
+
+      <!-- Izquierda: cifras de confianza + propuesta de valor (sticky en desktop) -->
+      <aside class="cform__aside">
+        <header class="cform__intro" data-rv>
+          <span class="kicker">Por qué SmartOrder</span>
+          <h2>Datos confiables, decisiones a tiempo.</h2>
+          <p>Estandarice compras, inventario y trazabilidad de todo el holding en una sola
+          plataforma, con gobernanza estricta y visibilidad en tiempo real.</p>
+        </header>
+
+        <ul class="cstats" role="list" data-rv>
+          {stats.map((s) => (
+            <li class="cstat">
+              <span class="cstat__v">
+                {s.static
+                  ? s.static
+                  : <><em data-statnum={s.num}>0</em>{s.suffix}</>}
+              </span>
+              <span class="cstat__l">{s.label}</span>
+            </li>
+          ))}
+        </ul>
+
+        <ul class="cprops" role="list" data-rv>
+          {props.map((p) => (
+            <li class="cprop">
+              <span class="cprop__ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+              </span>
+              <span class="cprop__b"><strong>{p.t}.</strong> {p.d}</span>
+            </li>
+          ))}
+        </ul>
+      </aside>
+
+      <!-- Derecha: formulario -->
+      <form class="cform__card" data-form novalidate data-rv>
+        <div class="cform__card-head">
+          <span class="kicker">Solicitar demostración</span>
+          <h2>Escríbanos</h2>
+          <p>Sin compromiso. Le contactamos con una propuesta adaptada a su operación.</p>
+        </div>
+
+        <div class="field-row">
+          <p class="field"><label for="f-nombre">Nombre *</label><input id="f-nombre" name="nombre" type="text" autocomplete="given-name" required /></p>
+          <p class="field"><label for="f-apellido">Apellido *</label><input id="f-apellido" name="apellido" type="text" autocomplete="family-name" required /></p>
+        </div>
+        <div class="field-row">
+          <p class="field"><label for="f-email">Correo corporativo *</label><input id="f-email" name="email" type="email" autocomplete="email" required /></p>
+          <p class="field"><label for="f-tel">Número *</label><input id="f-tel" name="telefono" type="tel" autocomplete="tel" required /></p>
+        </div>
+        <p class="field"><label for="f-empresa">Empresa *</label><input id="f-empresa" name="empresa" type="text" autocomplete="organization" required /></p>
+        <p class="field">
+          <label for="f-reto">¿Cuál es su reto empresarial? *</label>
+          <textarea id="f-reto" name="reto" rows="4" required placeholder="Cuéntenos sobre su holding: ¿cuántas sucursales/bodegas?, ¿qué POS usan?, ¿qué desafío de compras o inventario enfrentan hoy?"></textarea>
+        </p>
+        <!-- Honeypot anti-spam -->
+        <p class="field field--hp" aria-hidden="true"><label>No llenar<input name="hp" tabindex="-1" autocomplete="off" /></label></p>
+        <input type="hidden" name="_form" value="smart-order" />
+
+        <button class="btn btn--primary cform__submit" type="submit" data-magnetic data-btn-submit>
+          <span data-btn-label>Enviar solicitud</span>
+          <span data-btn-loading hidden>Enviando…</span>
+        </button>
+
+        <p class="cform__note" data-form-note aria-live="polite">Sus datos se tratan con confidencialidad · solo para contactarle.</p>
+
+        <div class="cform__ok" data-form-success hidden aria-live="polite">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+          <div>
+            <strong>¡Solicitud enviada!</strong>
+            <span>Recibimos su mensaje. Nuestro equipo le contactará dentro de 24 h hábiles.</span>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function magnetic() {
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    document.querySelectorAll('[data-magnetic]').forEach((el) => {
+      const qx = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3.out' });
+      const qy = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3.out' });
+      el.addEventListener('mousemove', (e) => {
+        const r = el.getBoundingClientRect();
+        qx((e.clientX - (r.left + r.width / 2)) * 0.25);
+        qy((e.clientY - (r.top + r.height / 2)) * 0.25);
+      });
+      el.addEventListener('mouseleave', () => gsap.to(el, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1, 0.3)' }));
+    });
+  }
+
+  function countUp() {
+    document.querySelectorAll('[data-statnum]').forEach((el) => {
+      const target = Number(el.dataset.statnum) || 0;
+      if (reduced) { el.textContent = String(target); return; }
+      const o = { v: 0 };
+      gsap.to(o, {
+        v: target, duration: 1.6, ease: 'power1.out',
+        scrollTrigger: { trigger: el, start: 'top 90%' },
+        onUpdate: () => { el.textContent = String(Math.round(o.v)); },
+      });
+    });
+  }
+
+  function reveals() {
+    if (reduced) return;
+    gsap.from('.chero [data-rv]', { y: 24, opacity: 0, stagger: 0.12, duration: 1, ease: 'expo.out', delay: 0.12 });
+    gsap.utils.toArray('.cform [data-rv]').forEach((el) => {
+      gsap.from(el, { y: 28, opacity: 0, duration: 0.9, ease: 'expo.out',
+        scrollTrigger: { trigger: el, start: 'top 88%' } });
+    });
+  }
+
+  function initForm() {
+    const form = document.querySelector('[data-form]');
+    if (!form || form.dataset.bound) return;
+    form.dataset.bound = '1';
+
+    const note    = form.querySelector('[data-form-note]');
+    const success = form.querySelector('[data-form-success]');
+    const btnEl   = form.querySelector('[data-btn-submit]');
+    const lblEl   = form.querySelector('[data-btn-label]');
+    const ldgEl   = form.querySelector('[data-btn-loading]');
+
+    const setError = (field, on) => field.closest('.field')?.classList.toggle('field--err', on);
+    form.querySelectorAll('input,textarea').forEach((el) => el.addEventListener('input', () => setError(el, false)));
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fields = [...form.querySelectorAll('input[required],textarea[required]')];
+      let firstBad = null, valid = true;
+      fields.forEach((el) => {
+        const bad = !el.checkValidity();
+        setError(el, bad);
+        if (bad && !firstBad) { firstBad = el; valid = false; }
+      });
+      if (!valid) { firstBad.focus(); return; }
+
+      btnEl.disabled = true;
+      lblEl.hidden = true;
+      ldgEl.hidden = false;
+
+      const body = new URLSearchParams(new FormData(form));
+      try {
+        const res  = await fetch('/contact.php', { method: 'POST', body });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Error desconocido');
+        form.querySelectorAll('input,textarea').forEach((el) => (el.value = ''));
+        if (note) note.hidden = true;
+        if (success) { success.hidden = false; success.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+      } catch (err) {
+        if (note) { note.textContent = `No se pudo enviar: ${err.message}. Vuelva a intentar en un momento.`; note.style.color = 'var(--accent)'; }
+        btnEl.disabled = false;
+        lblEl.hidden = false;
+        ldgEl.hidden = true;
+      }
+    });
+  }
+
+  function initContacto() {
+    if (!document.querySelector('.chero')) return;
+    magnetic();
+    initForm();
+    countUp();
+    reveals();
+    ScrollTrigger.refresh();
+  }
+  document.addEventListener('astro:page-load', initContacto);
+</script>
+
+<style>
+  .kicker {
+    display: inline-block; font-size: var(--text-xs); font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent);
+  }
+
+  /* ── Botón (mismo lenguaje que el home) ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.55em;
+    font-family: var(--font-body); font-weight: 600; font-size: var(--text-base);
+    padding: 0.85em 1.6em; border-radius: var(--radius-full); text-decoration: none;
+    border: 1px solid transparent; cursor: pointer; will-change: transform;
+    transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .btn--primary {
+    background: var(--accent); color: var(--bg-primary); border-color: var(--accent);
+    box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .btn--primary:hover { background: var(--accent-hover); box-shadow: 0 8px 30px color-mix(in srgb, var(--accent) 32%, transparent); }
+  .btn[disabled] { opacity: 0.7; cursor: default; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 0.6em;
+    font-size: var(--text-xs); font-weight: 500; letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    padding: 0.5em 1em; border-radius: var(--radius-full);
+    border: 1px solid color-mix(in srgb, var(--border) 95%, transparent);
+    background: color-mix(in srgb, var(--bg-secondary) 60%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .chip i {
+    width: 7px; height: 7px; border-radius: var(--radius-full);
+    background: var(--accent); box-shadow: 0 0 10px var(--accent);
+    animation: chip-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes chip-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  /* ════ HERO ════ */
+  .chero { position: relative; overflow: hidden; }
+  .chero__glow {
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(55% 60% at 82% -5%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+      radial-gradient(45% 55% at 0% 100%, color-mix(in srgb, var(--bg-secondary) 90%, transparent), transparent 72%);
+  }
+  .chero__grain {
+    position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.5;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--border) 40%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--border) 40%, transparent) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(70% 60% at 50% 0%, #000 0%, transparent 72%);
+  }
+  .chero__inner {
+    position: relative; z-index: 1;
+    padding-top: clamp(7rem, 18vh, 10rem);
+    padding-bottom: clamp(var(--space-lg), 8vh, var(--space-xl));
+    display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-md);
+  }
+  .chero__title {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(2.6rem, 8vw, 5rem); line-height: 1.02; letter-spacing: -0.04em;
+    color: var(--text-primary); max-width: 16ch;
+  }
+  .chero__title em {
+    font-style: normal;
+    background: linear-gradient(100deg, var(--accent), var(--accent-hover));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .chero__lead { font-size: var(--text-lg); line-height: 1.65; color: var(--text-secondary); max-width: 52ch; }
+
+  /* ════ CONVERSIÓN + FORMULARIO ════ */
+  .cform {
+    position: relative; overflow: hidden;
+    padding-block: clamp(var(--space-lg), 9vh, var(--space-xl));
+    background: var(--bg-secondary);
+    border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  }
+  .cform__scan {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, color-mix(in srgb, var(--border) 22%, transparent) 3px 4px);
+    mask-image: radial-gradient(90% 70% at 50% 0%, #000, transparent 80%);
+  }
+  .cform__grid {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: 1fr; gap: var(--space-lg); align-items: start;
+  }
+
+  /* Aside de conversión */
+  .cform__intro h2 {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.12; letter-spacing: -0.02em;
+    color: var(--text-primary); margin-top: var(--space-xs); max-width: 18ch;
+  }
+  .cform__intro p { color: var(--text-secondary); font-size: var(--text-base); line-height: 1.7; margin-top: var(--space-sm); max-width: 46ch; }
+
+  .cstats {
+    list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);
+    margin-top: var(--space-lg);
+  }
+  .cstat {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--bg-primary) 55%, transparent);
+  }
+  .cstat:first-child { grid-column: 1 / -1; }
+  .cstat__v {
+    display: block; font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(1.9rem, 4vw, 2.6rem); line-height: 1; letter-spacing: -0.03em;
+    color: var(--accent); font-variant-numeric: tabular-nums;
+  }
+  .cstat__l { display: block; margin-top: 0.5em; font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.45; }
+
+  .cprops { list-style: none; display: grid; gap: 0.85em; margin-top: var(--space-lg); }
+  .cprop { display: flex; gap: 0.7em; align-items: flex-start; font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.55; }
+  .cprop strong { color: var(--text-primary); font-weight: 600; }
+  .cprop__ico {
+    flex-shrink: 0; width: 1.4em; height: 1.4em; margin-top: 0.05em;
+    display: grid; place-items: center; border-radius: var(--radius-full);
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  .cprop__ico svg { width: 0.85em; height: 0.85em; }
+
+  /* Form card */
+  .cform__card {
+    display: grid; gap: var(--space-sm);
+    padding: var(--space-md);
+    border: 1px solid color-mix(in srgb, var(--border) 95%, transparent);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+  }
+  .cform__card-head h2 {
+    font-family: var(--font-heading); font-weight: 600; font-size: var(--text-2xl);
+    line-height: 1.1; letter-spacing: -0.02em; color: var(--text-primary); margin-top: var(--space-xs);
+  }
+  .cform__card-head p { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.6; margin-top: 0.4em; }
+
+  .field-row { display: grid; grid-template-columns: 1fr; gap: var(--space-sm); }
+  .field { display: flex; flex-direction: column; gap: 0.4em; margin: 0; min-width: 0; }
+  .field--hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .field label { font-family: var(--font-body); font-size: var(--text-sm); font-weight: 500; color: var(--text-primary); }
+  .field input, .field textarea {
+    font-family: var(--font-body); font-size: var(--text-base); color: var(--text-primary);
+    background: color-mix(in srgb, var(--bg-secondary) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 95%, transparent);
+    border-radius: var(--radius-sm); padding: 0.72em 0.9em; width: 100%;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+  .field textarea { resize: vertical; min-height: 7em; line-height: 1.6; }
+  .field input:focus, .field textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .field input::placeholder, .field textarea::placeholder { color: color-mix(in srgb, var(--text-secondary) 80%, transparent); }
+  .field--err input, .field--err textarea { border-color: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 16%, transparent); }
+  .field--err label { color: var(--danger); }
+
+  .cform__submit { margin-top: var(--space-xs); width: 100%; }
+  .cform__note { font-size: var(--text-xs); color: var(--text-secondary); line-height: 1.6; text-align: center; }
+
+  .cform__ok {
+    display: flex; align-items: flex-start; gap: var(--space-sm);
+    padding: var(--space-md);
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    border-radius: var(--radius-md); margin-top: var(--space-xs);
+  }
+  .cform__ok[hidden] { display: none; }
+  .cform__ok svg { flex-shrink: 0; color: var(--accent); margin-top: 2px; }
+  .cform__ok div { display: flex; flex-direction: column; gap: 0.2em; }
+  .cform__ok strong { font-size: var(--text-base); color: var(--text-primary); font-weight: 600; }
+  .cform__ok span { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.5; }
+
+  /* ── Desktop ── */
+  @media (min-width: 768px) {
+    .cform__grid { grid-template-columns: 0.85fr 1.15fr; gap: var(--space-2xl); }
+    .cform__aside { position: sticky; top: 15vh; }
+    .cform__card { padding: var(--space-lg); }
+    .field-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ── Mobile: el texto DENTRO del input (placeholder) más chico. El texto tecleado se
+     mantiene a 16px para no disparar el zoom automático en iOS. ── */
+  @media (max-width: 767px) {
+    .field input::placeholder,
+    .field textarea::placeholder { font-size: 0.82rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chip i { animation: none; }
+  }
+</style>

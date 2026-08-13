@@ -4,8 +4,7 @@ import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
   // AGENTE: dominio real del cliente. (Para GitHub Pages usar site github.io + base '/smartorder')
-  site: 'https://htortoza.github.io',
-  base: '/smartorder',
+  site: 'https://smart-order.io',
 
   integrations: [
     sitemap({

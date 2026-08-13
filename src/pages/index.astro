@@ -258,7 +258,8 @@ const pipeline = [
             </div>
           </div>
 
-          <!-- Nodos de la historia, conectados a la bodega -->
+          <!-- Nodos de la historia (desktop: absolutos con cables · mobile: galería horizontal) -->
+          <div class="pnode-track" data-pnode-track>
           <div class="pnode pnode--in" data-pnode style="left:15%;top:22%">
             <span class="pnode__n">01</span>
             <div class="pnode__b"><h3>Recepción</h3><p>42 SKU recibidos y verificados contra la orden.</p></div>
@@ -279,6 +280,7 @@ const pipeline = [
             <span class="pnode__n">05</span>
             <div class="pnode__b"><h3>Descuento al vender</h3><p>El POS deduce la materia prima en cada venta.</p></div>
           </div>
+          </div><!-- /.pnode-track -->
 
         </div>
       </div>
@@ -569,6 +571,7 @@ const pipeline = [
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let mm;
+  let introDone = false; // la intro del hero solo corre en la primera carga, no en cada navegación
 
   function magnetic() {
     if (!window.matchMedia('(pointer: fine)').matches) return;
@@ -585,7 +588,16 @@ const pipeline = [
   }
 
   function intro() {
-    if (reduced) return;
+    const counter = document.querySelector('[data-count]');
+    // Solo animar la entrada en la PRIMERA carga. En navegaciones (View Transitions)
+    // el hero ya se renderiza visible → evita el "salto"/doble carga al cambiar de página.
+    if (reduced || introDone) {
+      introDone = true;
+      if (counter) counter.textContent = '52 SKUs';
+      return;
+    }
+    introDone = true;
+
     const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
     tl.from('[data-title]', { y: 42, opacity: 0, duration: 1.15 }, 0.1)
       .from('.chip[data-reveal]', { y: 14, opacity: 0, duration: 0.7 }, 0.15)
@@ -597,7 +609,6 @@ const pipeline = [
       .from('[data-row]', { x: 26, opacity: 0, stagger: 0.08, duration: 0.55 }, '-=0.6')
       .from('[data-conveyor]', { opacity: 0, duration: 0.8 }, '-=0.5');
 
-    const counter = document.querySelector('[data-count]');
     if (counter) {
       const o = { v: 0 };
       gsap.to(o, { v: 52, duration: 1.6, delay: 0.7, ease: 'power1.out',
@@ -771,6 +782,48 @@ const pipeline = [
         });
         ptl.to({}, { duration: 0.4 }); // hold final
       }
+    });
+
+    // ════ MOBILE: mismo diagrama pinneado + galería horizontal de nodos ════
+    mm.add('(max-width: 767px) and (prefers-reduced-motion: no-preference)', () => {
+      const plan  = document.querySelector('[data-plan]');
+      const box   = document.querySelector('[data-plan-box]');
+      const track = document.querySelector('[data-pnode-track]');
+      if (!plan || !box || !track) return;
+
+      const chips = gsap.utils.toArray('[data-pchip]');
+      const tiles = gsap.utils.toArray('[data-shelf] [data-ptile]');
+
+      // Estado inicial: estante vacío y galería oculta (se revelan con el scroll)
+      gsap.set(tiles, { autoAlpha: 0, scale: 0.6, transformOrigin: '50% 50%' });
+      gsap.set(track, { autoAlpha: 0 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: { trigger: plan, start: 'top top', end: 'bottom bottom', scrub: 0.5 },
+      });
+
+      // 1) los chips vuelan a la bodega y se absorben
+      const br = box.getBoundingClientRect();
+      const bcx = br.left + br.width / 2, bcy = br.top + br.height / 2;
+      chips.forEach((c, i) => {
+        const r = c.getBoundingClientRect();
+        tl.to(c, {
+          x: bcx - (r.left + r.width / 2), y: bcy - (r.top + r.height / 2),
+          scale: 0.4, autoAlpha: 0, ease: 'power2.in', duration: 0.5,
+        }, i * 0.04);
+      });
+      // 2) el inventario se ORDENA en el estante (igual que en desktop)
+      tiles.forEach((t, i) =>
+        tl.to(t, { autoAlpha: 1, scale: 1, ease: 'back.out(1.7)', duration: 0.4 }, 0.2 + i * 0.05));
+      // 3) la bodega late al quedar ordenada
+      tl.to(box, { scale: 1.03, duration: 0.3, ease: 'power2.out' }, 0.75)
+        .to(box, { scale: 1, duration: 0.25 }, '>');
+      // 4) aparece la galería de nodos (la caja con productos queda arriba)
+      tl.to(track, { autoAlpha: 1, duration: 0.4 }, 1.05);
+      // 5) scroll lateral por las cards hasta la última, luego se despinnea y sigue normal
+      const overflow = Math.max(0, track.scrollWidth - window.innerWidth);
+      if (overflow > 0) tl.to(track, { x: -overflow, ease: 'none', duration: 2.2 }, 1.25);
+      tl.to({}, { duration: 0.3 }); // hold final
     });
   }
 
@@ -968,6 +1021,7 @@ const pipeline = [
   .panel__pill {
     font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary);
     padding: 0.35em 0.8em; border: 1px solid var(--border); border-radius: var(--radius-full);
+    white-space: nowrap; flex-shrink: 0;
   }
   .panel__pill--accent { margin-left: auto; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 
@@ -1338,6 +1392,8 @@ const pipeline = [
   .pnode--out .pnode__n { color: var(--accent); }
   .pnode__b h3 { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-base); color: var(--text-primary); }
   .pnode__b p { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.5; }
+  /* Wrapper de nodos: transparente por defecto (desktop absolutos / base apilados); en mobile-animado pasa a fila horizontal */
+  .pnode-track { display: contents; }
 
   /* flujo de aprobación (1.0) */
   .approve { list-style: none; display: grid; gap: 0.45em; margin-top: 0.3em; }
@@ -1610,6 +1666,51 @@ const pipeline = [
     .pnode--in { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
   }
 
+  /* Planning en MOBILE: mismo diagrama pinneado + galería horizontal de nodos (§15.6.1 pin "bueno") */
+  @media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
+    .plan { height: 460vh; }
+    .plan__stage { position: sticky; top: 0; height: 100vh; display: block; }
+    .plan__inner { position: relative; display: block; height: 100vh; margin-top: 0; overflow: hidden; }
+
+    /* Chips flotando (dispersos con top/left inline), vuelan a la caja */
+    .plan__cloud { position: absolute; inset: 0; display: block; max-width: none; z-index: 2; }
+    .pchip {
+      position: absolute; will-change: transform;
+      font-size: var(--text-xs); padding: 0.5em 0.85em; gap: 0.5em;
+    }
+    .pchip svg { width: 16px; height: 16px; }
+
+    /* Bodega arriba-centro con su estante */
+    .plan__box {
+      position: absolute; left: 50%; top: 28%; transform: translate(-50%, -50%);
+      width: min(86vw, 380px); max-width: none; z-index: 3; will-change: transform;
+    }
+
+    /* Nodos = galería horizontal que avanza con el scroll.
+       Anclada por top (%) → queda en la zona media-alta en cualquier alto de pantalla
+       (no pegada al fondo en teléfonos altos) y por encima del botón sticky de contacto. */
+    .pnode-track {
+      position: absolute; left: 0; top: 50%; bottom: auto; z-index: 4;
+      display: flex; flex-wrap: nowrap; align-items: stretch; gap: var(--space-sm);
+      width: max-content; padding-inline: 6vw; will-change: transform;
+    }
+    /* Card: número ARRIBA del título (apilado), con títulos y texto más grandes para protagonismo */
+    .pnode {
+      position: static; width: 80vw; max-width: 340px; flex: 0 0 auto;
+      display: flex; flex-direction: column; gap: 0.45em;
+      padding: var(--space-md);
+      background: color-mix(in srgb, var(--bg-secondary) 82%, #000);
+      border-color: color-mix(in srgb, var(--accent) 26%, var(--border));
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+    .pnode__n { font-size: var(--text-2xl); line-height: 1; }
+    .pnode .pnode__b h3 { font-size: var(--text-xl); line-height: 1.15; }
+    .pnode .pnode__b p { font-size: var(--text-base); line-height: 1.55; margin-top: 0.4em; }
+  }
+
+  /* Ocultar el CTA fantasma "Ver Arquitectura del Sistema" (apuntaba a #solucion, ya inexistente) */
+  .hero__cta .btn--ghost { display: none; }
+
   /* ════ MOBILE ════ */
   @media (max-width: 767px) {
     .hero { padding-top: 6.5rem; }
@@ -1619,7 +1720,10 @@ const pipeline = [
     /* Visual: imagen y panel apilados, sin superposición negativa (sin overflow) */
     .visual { height: auto; }
     .visual img { height: auto; aspect-ratio: 4 / 3; }
-    .panel { position: relative; left: auto; bottom: auto; width: calc(100% - var(--space-md)); margin: calc(-1 * var(--space-lg)) auto 0; }
+    /* Panel más ancho: reclama parte del padding del container → inset ~1rem del viewport; texto más legible */
+    .panel { position: relative; left: auto; bottom: auto; width: auto; margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-sm)) 0; }
+    .prow__name, .prow__stock { font-size: var(--text-base); }
+    .panel__brand { font-size: var(--text-base); }
 
     .sheet__inner { padding-block: var(--space-xl); }
     .desa__img img { aspect-ratio: 16 / 10; }
@@ -1628,6 +1732,26 @@ const pipeline = [
     .flow { grid-template-columns: 1fr; }
     .flow__lane { width: 1px; height: 36px; min-width: 0; justify-self: center; }
     .flow__lane i { left: 50%; top: 0; transform: translateX(-50%); animation: packet-v 2.8s var(--ease-expo) infinite; }
+
+    /* Sección 04 (La plataforma): mockups más compactos y legibles en mobile (1.0/2.0 encajan) */
+    .os__screens { padding: var(--space-sm); gap: var(--space-md); }
+    .os__sn { font-size: var(--text-base); }
+    .os__desc { font-size: var(--text-xs); line-height: 1.5; }
+    .mock__bar { padding: 0.65em var(--space-sm); font-size: var(--text-xs); }
+    .mock__body { padding: var(--space-sm); gap: 0.55em; }
+    .mock__row, .mock__total { font-size: var(--text-xs); gap: 0.5em; }
+    .mock__total strong { font-size: var(--text-base); }
+    .ocrow { gap: 0.5em; padding-block: 0.5em; font-size: var(--text-xs); }
+    .ocrow__id { font-size: 0.6rem; }
+    .ocrow__amt { font-size: 0.68rem; }
+    .badge { font-size: 0.55rem; padding: 0.24em 0.55em; }
+    .transit { gap: 0.5em; }
+    .transit__name { font-size: var(--text-xs); }
+    .transit__tag { font-size: 0.55rem; padding: 0.24em 0.6em; }
+    .count em { font-size: var(--text-xs); }
+    .count i { font-size: 0.6rem; }
+    .approve__step { font-size: 0.62rem; }
+    .mock__sub { font-size: 0.52rem; }
 
     .br-d { display: none; }
   }
