@@ -1,7 +1,8 @@
 ---
 // src/components/Header.astro — SmartOrder
-// Dock flotante: SOLO logo + botón CTA (sin menú de navegación).
-// Mobile: ocupa ~98% del ancho. En /contacto el CTA se oculta (ya estás en el formulario).
+// Dock flotante: logo + nav (Producto, Centro de ayuda) + CTA.
+// Desktop: nav inline dentro del dock. Mobile: nav colapsa a botón hamburguesa
+// que despliega un panel glass debajo del dock. En /contacto el CTA se oculta.
 // Persiste entre navegaciones (transition:persist) para no re-animar en cada cambio de página.
 // El logo es el IMAGOTIPO oficial inlineado (letras a var(--text-primary) para fondo oscuro).
 import { readFileSync } from 'node:fs';
@@ -10,6 +11,7 @@ import { withBase } from '../lib/path.js';
 
 const { siteName } = site.site;
 const orderUrl = site.orderUrl ?? '#';
+const nav = site.navigation ?? [];
 
 const imagotipo = readFileSync(new URL('../../public/imagotipo.svg', import.meta.url), 'utf-8')
   .replace(/<\?xml[^?]*\?>/, '');
@@ -21,11 +23,28 @@ const imagotipo = readFileSync(new URL('../../public/imagotipo.svg', import.meta
       <Fragment set:html={imagotipo} />
     </a>
 
+    <nav class="dock__nav" aria-label="Navegación principal">
+      {nav.map((item) => (
+        <a href={withBase(item.href)} class="dock__navlink">{item.label}</a>
+      ))}
+    </nav>
+
+    <button class="dock__burger" type="button" aria-expanded="false" aria-controls="dock-menu" aria-label="Abrir menú" data-dock-burger>
+      <span></span><span></span><span></span>
+    </button>
+
     <a href={orderUrl} class="dock__cta" data-dock-cta>
       <span class="dock__cta-full">Solicitar demo</span>
       <span class="dock__cta-short">Contactar</span>
     </a>
   </div>
+
+  <nav id="dock-menu" class="dock-menu" data-dock-menu aria-label="Navegación (móvil)">
+    {nav.map((item) => (
+      <a href={withBase(item.href)} class="dock-menu__link">{item.label}</a>
+    ))}
+    <a href={withBase('/contacto')} class="dock-menu__link dock-menu__link--contact">Contacto</a>
+  </nav>
 </header>
 
 <script>
@@ -47,7 +66,29 @@ const imagotipo = readFileSync(new URL('../../public/imagotipo.svg', import.meta
     const path = location.pathname.replace(/\/+$/, '') || '/';
     cta.style.display = path === '/contacto' ? 'none' : ''; // en contacto no mostramos el botón
   }
-  document.addEventListener('astro:page-load', () => { bindDock(); syncCtaForRoute(); });
+  function markActiveNav() {
+    const path = location.pathname.replace(/\/+$/, '') || '/';
+    document.querySelectorAll<HTMLAnchorElement>('.dock__navlink, .dock-menu__link').forEach((a) => {
+      const linkPath = new URL(a.getAttribute('href') || '', location.origin).pathname.replace(/\/+$/, '') || '/';
+      a.classList.toggle('is-active', linkPath === path);
+    });
+  }
+  function bindBurger() {
+    const wrap = document.querySelector('[data-dock-wrap]');
+    const burger = document.querySelector('[data-dock-burger]');
+    const menu = document.querySelector('[data-dock-menu]');
+    if (!wrap || !burger || !menu || burger.dataset.bound) return;
+    burger.dataset.bound = '1';
+
+    const close = () => { wrap.removeAttribute('data-menu-open'); burger.setAttribute('aria-expanded', 'false'); };
+    burger.addEventListener('click', () => {
+      const open = wrap.hasAttribute('data-menu-open');
+      open ? close() : (wrap.setAttribute('data-menu-open', ''), burger.setAttribute('aria-expanded', 'true'));
+    });
+    menu.addEventListener('click', (ev) => { if ((ev.target as HTMLElement).closest('a')) close(); });
+    document.addEventListener('astro:before-swap', close);
+  }
+  document.addEventListener('astro:page-load', () => { bindDock(); syncCtaForRoute(); markActiveNav(); bindBurger(); });
 </script>
 
 <style>
@@ -58,7 +99,8 @@ const imagotipo = readFileSync(new URL('../../public/imagotipo.svg', import.meta
     left: 0; right: 0;
     z-index: var(--z-overlay);
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     padding-inline: var(--space-sm);
     pointer-events: none;
     opacity: 0;
@@ -76,7 +118,7 @@ const imagotipo = readFileSync(new URL('../../public/imagotipo.svg', import.meta
     align-items: center;
     justify-content: space-between; /* logo a la izquierda, botón a la derecha (no pegados) */
     gap: var(--space-md);
-    width: min(620px, 100%);        /* mantiene el ancho que tenía en desktop */
+    width: min(720px, 100%);        /* +100px vs. antes para dar espacio al nav */
     padding: 0.55rem 0.65rem 0.55rem 1rem;
     border-radius: var(--radius-full);
     background: color-mix(in srgb, var(--bg-secondary) 62%, transparent);
@@ -102,6 +144,116 @@ const imagotipo = readFileSync(new URL('../../public/imagotipo.svg', import.meta
   .dock__logo :global(svg g path),
   .dock__logo :global(svg g polygon) { fill: var(--text-primary); }
 
+  /* ── Nav desktop (inline dentro del dock) ── */
+  .dock__nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-inline: auto;
+    padding-inline: var(--space-sm);
+  }
+  .dock__navlink {
+    position: relative;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--transition-fast);
+  }
+  .dock__navlink::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 1px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--transition-fast);
+  }
+  .dock__navlink:hover { color: var(--text-primary); }
+  .dock__navlink.is-active {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .dock__navlink.is-active::after { transform: scaleX(1); }
+
+  .dock__burger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    width: 36px;
+    height: 36px;
+    min-width: 44px;
+    min-height: 44px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .dock__burger span {
+    display: block;
+    width: 16px;
+    height: 2px;
+    border-radius: var(--radius-full);
+    background: var(--text-primary);
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
+  }
+  .dock-wrap[data-menu-open] .dock__burger span:first-child { transform: translateY(6px) rotate(45deg); }
+  .dock-wrap[data-menu-open] .dock__burger span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .dock-wrap[data-menu-open] .dock__burger span:last-child { transform: translateY(-6px) rotate(-45deg); }
+
+  /* ── Menú móvil: panel glass debajo del dock ── */
+  .dock-menu {
+    pointer-events: auto;
+    display: none;
+    flex-direction: column;
+    gap: 0.2rem;
+    width: 98%;
+    margin: 0.5rem auto 0;
+    padding: var(--space-sm);
+    background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+    backdrop-filter: blur(18px);
+    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    border-radius: var(--radius-lg);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+  }
+  .dock-wrap[data-menu-open] .dock-menu {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .dock-menu__link {
+    padding: 0.7rem 0.6rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+  }
+  .dock-menu__link:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .dock-menu__link--contact {
+    margin-top: 0.3rem;
+    padding-top: calc(0.7rem + var(--space-xs));
+    border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .dock-menu__link.is-active {
+    color: var(--accent);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
   .dock__cta {
     font-family: var(--font-body);
     font-size: var(--text-sm);
@@ -118,11 +270,12 @@ const imagotipo = readFileSync(new URL('../../public/imagotipo.svg', import.meta
   .dock__cta:hover { background: var(--accent-hover); transform: translateY(-1px); }
   .dock__cta-short { display: none; }
 
-  /* ── Mobile: dock al 98% del ancho, logo + botón Contactar ── */
+  /* ── Mobile: dock al 98% del ancho, nav colapsa a hamburguesa ── */
   @media (max-width: 860px) {
     .dock { width: 98%; justify-content: space-between; gap: var(--space-sm); }
-    .dock__cta-full { display: none; }
-    .dock__cta-short { display: inline; }
+    .dock__nav { display: none; }
+    .dock__burger { display: flex; }
+    .dock__cta { display: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -99,12 +99,8 @@ const orderUrl = site.orderUrl ?? '#';
     100% { box-shadow: var(--shadow-lg), 0 0 0 18px color-mix(in srgb, var(--accent) 0%, transparent); }
   }
 
-  @media (max-width: 640px) {
-    .sticky-cta {
-      left: var(--space-md);
-      right: var(--space-md);
-      justify-content: center;
-    }
+  @media (max-width: 860px) {
+    .sticky-cta { display: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {

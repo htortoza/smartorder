@@ -144,12 +144,52 @@ export const modules = [
   },
   {
     id: 'produccion', num: '04', title: 'Producción',
-    blurb: 'Fabrica stock de productos con receta descontando automáticamente los ingredientes utilizados.',
-    bullets: [
-      'Permite fabricar stock de un producto con receta.',
-      'Un producto con receta es aquel configurado con ingredientes en el catálogo maestro.',
-      'Al registrar una producción, el sistema descuenta automáticamente los ingredientes utilizados y deja el movimiento registrado.',
-      'Al crear un producto de tienda, el sistema detecta si faltan ingredientes en su receta y alerta al instante para añadirlos, garantizando la consistencia de las recetas.',
+    blurb: 'Fabrica stock de productos con receta descontando automáticamente los ingredientes utilizados, o registra la salida automática cuando una venta descuenta un producto con receta.',
+    intro: 'Toda producción nace Manual (un usuario la crea en el dashboard) o Automática (la dispara una venta). Comparten folio PROD-XXXXXX, pero se comportan distinto:',
+    subs: [
+      {
+        id: 'produccion-manual', title: 'Crear una producción manual',
+        bullets: [
+          'Wizard de 3 pasos: 1) elegir el producto de tienda con receta —sin receta no hay producción Manual—, 2) configurar esta orden (unidades a producir, bodega de origen, bodega de destino) y 3) revisar y ejecutar.',
+          'La receta base no se modifica: los ajustes son exclusivos de esta orden. El teórico informa, pero la cantidad orden es lo que realmente se descuenta.',
+          { t: 'Cada línea del BOM de la orden puede quedar en uno de estos estados:', sub: [
+            'Ajustado — mismo insumo, otra cantidad (p. ej. +15% sobre el teórico).',
+            'Sustituido — se cambia el producto; el original queda como “reemplazado por”, con motivo consultable.',
+            'Extra — insumo que no venía en la receta y se agrega solo a esta orden.',
+            'Eliminado — no se consume esa línea; puede afectar la masa o el rendimiento final del producto.',
+          ]},
+          'El pie del wizard muestra el costo estimado de la orden. Si una línea queda inconsistente, el sistema exige revisión antes de continuar.',
+        ],
+      },
+      {
+        id: 'produccion-resultados', title: 'Qué pasa al ejecutar',
+        bullets: [
+          'Completada — alcanza todo lo pedido. Parcial — alcanza una parte y queda pendiente, con los insumos bloqueantes marcados. Sin log — si no cabe producir ni una unidad, no se crea registro.',
+          'Reanudar abre un nuevo intento sobre el pendiente (la receta maestra sigue intacta). Finalizar cierra el pendiente sin producir el resto y sin devolver stock; ese log no se puede reanudar.',
+          'Cada ejecución con cantidad producida > 0 deja Kardex: un CONSUMO por cada insumo de la orden y una ENTRADA del terminado en destino, ambos con folio PROD.',
+          'El costo promedio del terminado sale del costo de los insumos de esa orden dividido las unidades producidas, y se mezcla con el cost_avg ya existente en destino. Ese ingreso puede saldar deuda de stock abierta del mismo producto.',
+        ],
+      },
+      {
+        id: 'produccion-automatica', title: 'Producción automática por venta',
+        bullets: [
+          'Se dispara sola cuando el POS o una API key descuentan un producto con receta. No es dinámica: no hay editor de insumos ni sustituciones en esa pantalla.',
+          { t: 'Orden de descuento:', sub: [
+            'Primero el stock propio del terminado, si lo hay.',
+            'Lo que falte se cubre explotando la receta (en sub-recetas, primero el stock del intermedio).',
+            'Si tampoco alcanzan las hojas de la receta, se registra deuda de stock en esas hojas.',
+          ]},
+        ],
+      },
+      {
+        id: 'produccion-limites', title: 'Qué no hace este módulo',
+        bullets: [
+          'No edita la receta maestra: cualquier desvío es siempre por orden, no por catálogo.',
+          'No anula ni borra una producción ya ejecutada — el stock ya se movió — ni permite editar un log cerrado; reanudar es un intento nuevo, no una edición.',
+          'No produce productos sin receta ni crea un log si no alcanza ni una unidad con los insumos de la orden.',
+          'No hay cancelación de venta desde Producción: la vía Automática solo audita una reducción de inventario que ya ocurrió.',
+        ],
+      },
     ],
   },
   {

@@ -1,0 +1,587 @@
+---
+// src/pages/produccion.astro — bespoke (SmartOrder)
+// Página aparte para el módulo de Producción (igual que /producto), fuera del
+// Centro de ayuda: esta merece su propia página, no el template de docs.
+// Todo el contenido es verbatim de Fuente/Modulo Producción - SmartOrder.md —
+// cero datos inventados: es un producto real que se vende.
+import Layout from '../layouts/Layout.astro';
+import ShaderField from '../components/ShaderField.astro';
+import site from '../../contracts/site.json';
+import { withBase } from '../lib/path.js';
+import { modules } from '../data/help.js';
+
+const order = site.orderUrl;
+const i = modules.findIndex((m) => m.id === 'produccion');
+const prev = modules[i - 1] ?? null;
+const next = modules[i + 1] ?? null;
+
+const seo = {
+  title: 'Producción — SmartOrder',
+  description: 'Cómo el módulo de Producción de SmartOrder convierte receta y stock en producto terminado: wizard manual con BOM editable, kardex y costo, y la vía automática por venta.',
+  googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap',
+  schemaData: {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: 'Producción — SmartOrder',
+    description: 'Módulo de Producción: convierte una receta y su stock en producto terminado, o registra una salida automática por venta.',
+    isPartOf: { '@type': 'WebSite', name: 'SmartOrder', url: site.site.domain },
+  },
+};
+
+// Tabla 02 — dos orígenes de un mismo folio (verbatim del contrato de negocio)
+const origenes = [
+  { k: 'Quién la dispara', manual: 'Un usuario en el dashboard', auto: 'Una venta o reducción de inventario (API key)' },
+  { k: 'Lista de insumos', manual: 'Dinámica por orden: parte de la receta y se puede ajustar, sustituir, agregar o quitar insumos solo para esa producción', auto: 'Fija: sale primero el stock del terminado, luego explosión de la receta' },
+  { k: 'Qué hace al stock', manual: 'Consume los insumos de la orden (no necesariamente el teórico) e ingresa el terminado', auto: 'Primero sale el producto si hay stock; si no alcanza, explota la receta' },
+  { k: 'Bodega destino', manual: 'Obligatoria (puede ser la misma que origen)', auto: 'No hay: no se fabrica, se descuenta' },
+  { k: 'Intentos', manual: 'Sí — parcial, se puede reanudar o finalizar', auto: 'No' },
+];
+
+// Líneas de ejemplo del BOM de una orden (Pechuga de pollo 1kg, 12 unidades)
+const lineas = [
+  { estado: 'ajustado', ingrediente: 'Longaniza', teorico: '1.680 g', orden: '1.932 g', nota: '+15% sobre el teórico' },
+  { estado: 'sustituido', ingrediente: 'Yogurt natural 500 ml', teorico: '—', orden: 'Yogurt griego 1 L', nota: 'Original queda como “reemplazado por”, con motivo consultable' },
+  { estado: 'extra', ingrediente: 'Sal marina', teorico: '—', orden: '120 g', nota: 'No venía en la receta; se agrega solo a esta orden' },
+  { estado: 'eliminado', ingrediente: 'Pimienta negra', teorico: 'receta', orden: '0', nota: 'No se consume; puede afectar la masa final' },
+];
+
+const estadoLabel = { ajustado: 'Ajustado', sustituido: 'Sustituido', extra: 'Extra', eliminado: 'Eliminado' };
+
+const cascada = [
+  { n: '1', t: 'Stock propio del terminado', d: 'Sale primero de la bodega de depleción, si hay existencia.' },
+  { n: '2', t: 'Explosión de receta', d: 'Lo que falte se cubre explotando la receta. En sub-recetas, primero se usa el stock del intermedio.' },
+  { n: '3', t: 'Deuda de stock', d: 'Si tampoco alcanzan las hojas de la receta, se registra deuda de stock en esas hojas.' },
+];
+
+const reglas = [
+  'El teórico informa; la cantidad orden manda el descuento.',
+  'Sustituir cambia qué producto sale de bodega — el original queda como trazabilidad (“reemplazado por”), con motivo consultable.',
+  'Un extra suma consumo que la receta no pedía; un eliminado no consume esa línea y puede afectar el rendimiento percibido del terminado.',
+  'Lo producible lo limita el stock del insumo vigente más escaso de la orden.',
+  'Estados del log: completed / partial / finished. El listado de una cadena muestra el último intento y las cantidades acumuladas.',
+  'El Kardex Manual registra movimientos PRODUCTION según la orden ejecutada, no según el teórico.',
+];
+
+const limites = [
+  'No edita la receta maestra: el desvío es siempre por orden.',
+  'No anula ni borra una producción ya ejecutada — el stock ya se movió.',
+  'No edita un log cerrado; reanudar es un intento nuevo, no una edición.',
+  'No crea un log si no cabe ni una unidad con los insumos de la orden.',
+  'No produce productos sin receta.',
+  'La vía Automática no es dinámica: no se sustituye ni se ajusta el BOM en esa pantalla.',
+  'No hay cancelación de venta desde Producción: solo audita una reducción que ya ocurrió.',
+];
+---
+
+<Layout
+  title={seo.title}
+  description={seo.description}
+  googleFontsUrl={seo.googleFontsUrl}
+  schemaData={seo.schemaData}
+>
+  <!-- ░░ 01 · HERO — folio real como mockup, no foto de stock ░░ -->
+  <section class="mp-hero" aria-label="Producción">
+    <div class="container mp-hero__grid">
+      <div class="mp-hero__copy">
+        <span class="kicker kicker--mono" data-reveal>Producción</span>
+        <h1 class="mp-hero__title" data-reveal>
+          De la receta al producto terminado.
+        </h1>
+        <p class="mp-hero__lead" data-reveal>
+          Producción convierte una receta y su stock en producto terminado dentro de una bodega,
+          o deja constancia de una salida automática cuando una venta descuenta un producto con receta.
+        </p>
+        <div class="mp-hero__cta" data-reveal>
+          <a class="btn btn--primary" href={order} data-magnetic>Solicitar demo</a>
+          <a class="btn btn--ghost" href="#dos-vias">Ver las dos vías<span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+
+      <div class="mp-folio" data-reveal aria-hidden="true">
+        <div class="mp-folio__head">
+          <span class="mp-folio__id">PROD-000009</span>
+          <span class="mp-folio__badge mp-folio__badge--manual">Manual</span>
+        </div>
+        <p class="mp-folio__name">Lomo Salteado con Risotto</p>
+        <div class="mp-folio__rows">
+          <div class="mp-folio__row"><span>Pedidas</span><strong>50</strong></div>
+          <div class="mp-folio__row"><span>Intentos</span><strong>2</strong></div>
+          <div class="mp-folio__row"><span>Bodegas</span><strong>Origen ≠ destino</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 02 · DOS ORÍGENES — duelo Manual vs Automática ░░ -->
+  <section class="mp-duel" id="dos-vias" aria-label="Dos orígenes de un mismo folio">
+    <div class="container">
+      <header class="shead">
+        <span class="kicker kicker--mono">02 — Un mismo folio, dos caminos</span>
+        <h2>Toda producción nace Manual o Automática.</h2>
+        <p>Comparten el mismo folio <code>PROD-XXXXXX</code>, pero se disparan distinto y tratan el stock distinto.</p>
+      </header>
+
+      <div class="mp-duel__grid" role="list">
+        <div class="mp-duel__col mp-duel__col--manual" role="listitem" data-item>
+          <span class="mp-duel__tag">Manual</span>
+          <span class="mp-duel__sub">“Crear producción”</span>
+        </div>
+        <div class="mp-duel__col mp-duel__col--auto" role="listitem" data-item>
+          <span class="mp-duel__tag">Automática</span>
+          <span class="mp-duel__sub">“Automática por venta”</span>
+        </div>
+      </div>
+
+      <dl class="mp-duel__table" data-item>
+        {origenes.map((o) => (
+          <div class="mp-duel__row">
+            <dt>{o.k}</dt>
+            <dd class="mp-duel__cell mp-duel__cell--manual">{o.manual}</dd>
+            <dd class="mp-duel__cell mp-duel__cell--auto">{o.auto}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </section>
+
+  <!-- ░░ 03 · EL VIAJE MANUAL — wizard de 3 pasos + BOM de la orden ░░ -->
+  <section class="mp-wizard" aria-label="El viaje manual">
+    <div class="container">
+      <header class="shead">
+        <span class="kicker kicker--mono">03 — El viaje manual</span>
+        <h2>Un wizard de 3 pasos, con la receta como punto de partida.</h2>
+        <p>Ejemplo real del alta: <strong>Pechuga de pollo 1kg</strong>, 12 unidades, origen y destino
+        <em>Bodega Central Santiago</em>.</p>
+      </header>
+
+      <ol class="mp-steps" role="list">
+        <li class="mp-steps__item" data-item>
+          <span class="mp-steps__n">1</span>
+          <div>
+            <h3>Producto</h3>
+            <p>Se elige el producto de tienda con receta que se va a producir. Sin receta no hay producción Manual.</p>
+          </div>
+        </li>
+        <li class="mp-steps__item mp-steps__item--wide" data-item>
+          <span class="mp-steps__n">2</span>
+          <div>
+            <h3>Configuración e insumos</h3>
+            <p>Se define <strong>esta orden</strong> —no la receta de catálogo—: unidades a producir, bodega de
+            origen, bodega de destino. La receta base no se modifica; los cambios son exclusivos de esta orden.</p>
+
+            <div class="mp-bom" role="table" aria-label="Insumos y consumo proyectado">
+              <div class="mp-bom__head" role="row">
+                <span role="columnheader">Ingrediente</span>
+                <span role="columnheader">Teórico</span>
+                <span role="columnheader">Cantidad orden</span>
+                <span role="columnheader">Estado</span>
+              </div>
+              {lineas.map((l) => (
+                <div class={`mp-bom__row mp-bom__row--${l.estado}`} role="row">
+                  <span role="cell" class="mp-bom__ing">{l.ingrediente}</span>
+                  <span role="cell" class="mp-bom__teo">{l.teorico}</span>
+                  <span role="cell" class="mp-bom__ord">{l.orden}</span>
+                  <span role="cell" class={`mp-bom__badge mp-bom__badge--${l.estado}`}>{estadoLabel[l.estado]}</span>
+                  <span class="mp-bom__nota">{l.nota}</span>
+                </div>
+              ))}
+            </div>
+
+            <p class="mp-bom__foot">Costo estimado de la orden: <strong>$64.830</strong>. Si una línea queda
+            inconsistente, el flujo exige revisión antes de continuar a Revisión.</p>
+          </div>
+        </li>
+        <li class="mp-steps__item" data-item>
+          <span class="mp-steps__n">3</span>
+          <div>
+            <h3>Revisión</h3>
+            <p>Confirmación de producto, bodegas, unidades e insumos de la orden, y ejecución.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ░░ 04 · QUÉ QUEDA REGISTRADO — resultados + kardex como recibo ░░ -->
+  <section class="mp-ledger-sec" aria-label="Qué queda registrado">
+    <div class="container mp-ledger-sec__grid">
+      <div data-item>
+        <span class="kicker kicker--mono">04 — Qué queda registrado</span>
+        <h2>Ejecutar mueve stock. El Kardex deja el rastro.</h2>
+
+        <div class="mp-outcomes" role="list">
+          <div class="mp-outcome mp-outcome--ok" role="listitem"><strong>Completada</strong><span>Alcanza todo lo de la orden</span></div>
+          <div class="mp-outcome mp-outcome--warn" role="listitem"><strong>Parcial</strong><span>Alcanza una parte; queda pendiente con insumos bloqueantes marcados</span></div>
+          <div class="mp-outcome mp-outcome--off" role="listitem"><strong>Sin log</strong><span>No cabe producir nada</span></div>
+        </div>
+
+        <ul class="mp-plain" role="list">
+          <li><strong>Reanudar</strong> — nuevo intento por el pendiente; la receta maestra sigue intacta.</li>
+          <li><strong>Finalizar</strong> — cierra el pendiente sin producir el resto y sin devolver stock; ese log no se puede reanudar.</li>
+        </ul>
+      </div>
+
+      <div class="mp-receipt" data-item aria-hidden="true">
+        <p class="mp-receipt__title">PROD-000009</p>
+        <p class="mp-receipt__line"><span>CONSUMO</span><span>Longaniza · 1.932 g</span></p>
+        <p class="mp-receipt__line"><span>CONSUMO</span><span>Yogurt griego · 1 L</span></p>
+        <p class="mp-receipt__line"><span>CONSUMO</span><span>Sal marina · 120 g</span></p>
+        <p class="mp-receipt__sep" aria-hidden="true"></p>
+        <p class="mp-receipt__line mp-receipt__line--in"><span>ENTRADA</span><span>Pechuga de pollo 1kg · 12 un</span></p>
+        <p class="mp-receipt__foot">costo promedio = costo insumos de la orden ÷ unidades producidas — se mezcla con el cost_avg de destino y puede saldar deuda de stock abierta.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 05 · LA OTRA VÍA — automática por venta, cascada de prioridad ░░ -->
+  <section class="mp-cascade-sec" aria-label="La otra vía: automática por venta">
+    <div class="container">
+      <header class="shead">
+        <span class="kicker kicker--mono">05 — La otra vía</span>
+        <h2>Automática por venta: sin editor, sin cambios de producto.</h2>
+        <p>Se dispara sola cuando el POS o la API descuentan un producto con receta. No es dinámica: no hay
+        editor de insumos.</p>
+      </header>
+
+      <div class="mp-cascade" role="list">
+        <span class="mp-cascade__line" aria-hidden="true"></span>
+        {cascada.map((c) => (
+          <div class="mp-cascade__item" role="listitem" data-item>
+            <span class="mp-cascade__n">{c.n}</span>
+            <div><h3>{c.t}</h3><p>{c.d}</p></div>
+          </div>
+        ))}
+      </div>
+
+      <div class="mp-folio mp-folio--auto" data-item aria-hidden="true">
+        <div class="mp-folio__head">
+          <span class="mp-folio__id">PROD-000017</span>
+          <span class="mp-folio__badge mp-folio__badge--auto">Producción automática</span>
+        </div>
+        <p class="mp-folio__name">Fideos espagueti</p>
+        <div class="mp-folio__rows">
+          <div class="mp-folio__row"><span>Progreso</span><strong>5/5</strong></div>
+          <div class="mp-folio__row"><span>Origen</span><strong>VENTA-98231894</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 06 · REGLAS DEL JUEGO — principios vs límites ░░ -->
+  <section class="mp-rules" aria-label="Reglas de negocio y límites del módulo">
+    <div class="container">
+      <p class="mp-rules__master" data-item>“La receta es plantilla; la orden es instancia.”</p>
+
+      <div class="mp-rules__grid">
+        <div data-item>
+          <h2 class="mp-rules__h mp-rules__h--ok">Así funciona</h2>
+          <ul class="mp-rules__list" role="list">
+            {reglas.map((r) => <li>{r}</li>)}
+          </ul>
+        </div>
+        <div data-item>
+          <h2 class="mp-rules__h mp-rules__h--no">Lo que Producción no hace</h2>
+          <ul class="mp-rules__list mp-rules__list--no" role="list">
+            {limites.map((l) => <li>{l}</li>)}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 07 · CIERRE — full-bleed, fondo shader (§17) ░░ -->
+  <section class="mp-cta" aria-label="Agendar demostración">
+    <ShaderField />
+    <div class="container mp-cta__inner" data-item>
+      <h2><span class="mp-cta__line">Lleve también su producción</span><span class="mp-cta__line">a <em>un solo sistema</em>.</span></h2>
+      <p>Conectada a Compras e Inventario, con trazabilidad de cada orden ejecutada.</p>
+      <a class="btn btn--primary btn--lg" href={order} data-magnetic>Solicitar demo</a>
+      <span class="mp-cta__meta">Implementación guiada · Integración con su POS</span>
+    </div>
+  </section>
+
+  <!-- Pager entre módulos (docs completos en Centro de ayuda) -->
+  <nav class="mp-pager container" aria-label="Navegación entre módulos">
+    {prev
+      ? <a class="mp-pager__link mp-pager__link--prev" href={withBase(`/centro-de-ayuda/${prev.id}`)}><span>← Anterior</span><b>{prev.title}</b></a>
+      : <span></span>}
+    {next
+      ? <a class="mp-pager__link mp-pager__link--next" href={withBase(`/centro-de-ayuda/${next.id}`)}><span>Siguiente →</span><b>{next.title}</b></a>
+      : <span></span>}
+  </nav>
+</Layout>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  import { bindMagnetic, bindSectionReveals, refreshOnFontsReady } from '../lib/motion.js';
+  gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function initProduccion() {
+    if (!document.querySelector('.mp-hero')) return; // guard: Astro no desregistra listeners al navegar
+    bindMagnetic();
+
+    if (!reduced) {
+      gsap.utils.toArray('[data-reveal]').forEach((el, i) => {
+        gsap.from(el, { y: 24, opacity: 0, duration: 0.9, ease: 'expo.out', delay: i * 0.06 });
+      });
+    }
+
+    bindSectionReveals(ScrollTrigger, reduced);
+
+    if (!reduced) {
+      gsap.utils.toArray('.mp-cascade__line').forEach((line) => {
+        gsap.fromTo(line, { scaleY: 0 }, { scaleY: 1, ease: 'none',
+          scrollTrigger: { trigger: line.parentElement, start: 'top 75%', end: 'bottom 60%', scrub: 0.6 } });
+      });
+    }
+
+    ScrollTrigger.refresh();
+  }
+
+  document.addEventListener('astro:page-load', initProduccion);
+  refreshOnFontsReady(ScrollTrigger);
+</script>
+
+<style>
+  /* .kicker y .btn* viven en theme.css (design tokens compartidos) */
+  .shead code { font-family: var(--font-mono); color: var(--accent); }
+
+  /* ── 01 Hero ── */
+  .mp-hero { padding-block: clamp(6rem, 14vw, 9rem) var(--space-xl); overflow: hidden; }
+  .mp-hero__grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); align-items: center; }
+  .mp-hero__title {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(2.4rem, 6.4vw, 4rem); line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance;
+  }
+  .mp-hero__lead { margin-top: var(--space-sm); font-size: var(--text-lg); line-height: 1.6; color: var(--text-secondary); max-width: 58ch; }
+  .mp-hero__cta { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-md); }
+
+  /* Folio mockup (real: PROD-000009) */
+  .mp-folio {
+    justify-self: center;
+    width: min(340px, 100%);
+    padding: var(--space-md);
+    background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .mp-folio__head { display: flex; justify-content: space-between; align-items: center; }
+  .mp-folio__id { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--accent); }
+  .mp-folio__badge { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.25em 0.6em; border-radius: var(--radius-full); }
+  .mp-folio__badge--manual { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .mp-folio__badge--auto { color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, transparent); }
+  .mp-folio__name { margin-top: 0.6rem; font-family: var(--font-heading); font-weight: 500; font-size: var(--text-xl); }
+  .mp-folio__rows { margin-top: var(--space-sm); display: grid; gap: 0.5rem; padding-top: var(--space-sm); border-top: 1px solid color-mix(in srgb, var(--border) 45%, transparent); }
+  .mp-folio__row { display: flex; justify-content: space-between; font-size: var(--text-sm); color: var(--text-secondary); }
+  .mp-folio__row strong { font-family: var(--font-mono); color: var(--text-primary); }
+
+  /* ── 02 Duelo Manual vs Automática ── */
+  .mp-duel { padding-block: var(--space-xl); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .mp-duel__grid { display: none; }
+  .mp-duel__col { display: flex; flex-direction: column; gap: 0.2rem; padding: 0 0.9rem var(--space-xs); }
+  .mp-duel__tag { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-lg); }
+  .mp-duel__col--manual .mp-duel__tag { color: var(--accent); }
+  .mp-duel__col--auto .mp-duel__tag { color: var(--warning); }
+  .mp-duel__sub { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); }
+  .mp-duel__table { display: grid; gap: var(--space-sm); }
+  .mp-duel__row { display: grid; grid-template-columns: 1fr; gap: 0.4rem; padding-block: var(--space-sm); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .mp-duel__row dt { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+  .mp-duel__cell { font-size: var(--text-base); line-height: 1.55; padding: 0.7rem 0.9rem; border-radius: var(--radius-md); }
+  .mp-duel__cell--manual { background: color-mix(in srgb, var(--accent) 8%, transparent); border-left: 2px solid var(--accent); }
+  .mp-duel__cell--auto { background: color-mix(in srgb, var(--warning) 8%, transparent); border-left: 2px solid var(--warning); }
+  .mp-duel__cell--manual::before { content: 'Manual · '; color: var(--accent); font-weight: 600; }
+  .mp-duel__cell--auto::before { content: 'Automática · '; color: var(--warning); font-weight: 600; }
+
+  @media (min-width: 860px) {
+    .mp-duel__grid { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+    .mp-duel__grid .mp-duel__col { grid-column: span 1; }
+    .mp-duel__grid .mp-duel__col--manual { grid-column: 2; }
+    .mp-duel__grid .mp-duel__col--auto { grid-column: 3; }
+    .mp-duel__row { grid-template-columns: 1fr 1fr 1fr; align-items: start; gap: var(--space-sm); }
+    .mp-duel__cell--manual::before, .mp-duel__cell--auto::before { display: none; }
+  }
+
+  /* ── 03 Wizard ── */
+  .mp-wizard { padding-block: var(--space-xl); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .mp-steps { list-style: none; display: grid; gap: var(--space-lg); }
+  .mp-steps__item { display: grid; grid-template-columns: 2.5rem 1fr; gap: var(--space-sm); }
+  .mp-steps__n {
+    display: flex; align-items: center; justify-content: center;
+    width: 2.5rem; height: 2.5rem; border-radius: 50%;
+    font-family: var(--font-mono); font-weight: 500; color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .mp-steps__item h3 { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-xl); }
+  .mp-steps__item p { margin-top: 0.4rem; font-size: var(--text-base); line-height: 1.6; color: var(--text-secondary); max-width: 62ch; }
+
+  .mp-bom { margin-top: var(--space-md); display: grid; gap: 0.4rem; }
+  .mp-bom__head { display: none; }
+  .mp-bom__row {
+    display: grid; grid-template-columns: 1fr; gap: 0.3rem;
+    padding: var(--space-sm); border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bg-secondary) 65%, transparent);
+    border-left: 3px solid var(--border);
+  }
+  .mp-bom__row--ajustado { border-left-color: var(--warning); }
+  .mp-bom__row--sustituido { border-left-color: var(--accent); }
+  .mp-bom__row--extra { border-left-color: var(--text-secondary); }
+  .mp-bom__row--eliminado { border-left-color: var(--danger); }
+  .mp-bom__ing { font-family: var(--font-heading); font-weight: 500; color: var(--text-primary); }
+  .mp-bom__teo, .mp-bom__ord { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); }
+  .mp-bom__teo::before { content: 'Teórico: '; }
+  .mp-bom__ord::before { content: 'Orden: '; color: var(--text-primary); }
+  .mp-bom__badge {
+    justify-self: start; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 0.2em 0.6em; border-radius: var(--radius-full); width: fit-content;
+  }
+  .mp-bom__badge--ajustado { color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, transparent); }
+  .mp-bom__badge--sustituido { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  .mp-bom__badge--extra { color: var(--text-secondary); background: color-mix(in srgb, var(--text-secondary) 14%, transparent); }
+  .mp-bom__badge--eliminado { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); text-decoration: line-through; }
+  .mp-bom__nota { font-size: var(--text-sm); color: var(--text-secondary); }
+  .mp-bom__foot { margin-top: var(--space-sm); font-size: var(--text-sm); color: var(--text-secondary); }
+  .mp-bom__foot strong { font-family: var(--font-mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+
+  @media (min-width: 700px) {
+    .mp-bom__head { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; padding-inline: var(--space-sm); font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+    .mp-bom__row { grid-template-columns: 1.2fr 1fr 1fr 1fr; align-items: center; }
+    .mp-bom__nota { grid-column: 1 / -1; margin-top: 0.2rem; }
+    .mp-bom__teo::before, .mp-bom__ord::before { display: none; }
+  }
+
+  /* ── 04 Qué queda registrado ── */
+  .mp-ledger-sec { padding-block: var(--space-xl); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .mp-ledger-sec__grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); }
+  .mp-ledger-sec h2 { font-family: var(--font-heading); font-weight: 600; font-size: clamp(1.8rem, 4.5vw, 2.4rem); letter-spacing: -0.01em; margin-top: 0.4rem; text-wrap: balance; }
+
+  .mp-outcomes { margin-top: var(--space-md); display: grid; gap: 0.6rem; }
+  .mp-outcome { display: flex; flex-direction: column; gap: 0.15rem; padding: var(--space-sm); border-radius: var(--radius-md); border-left: 3px solid var(--border); background: color-mix(in srgb, var(--bg-secondary) 60%, transparent); }
+  .mp-outcome strong { font-family: var(--font-heading); font-weight: 500; }
+  .mp-outcome span { font-size: var(--text-sm); color: var(--text-secondary); }
+  .mp-outcome--ok { border-left-color: var(--accent); }
+  .mp-outcome--warn { border-left-color: var(--warning); }
+  .mp-outcome--off { border-left-color: var(--danger); }
+
+  .mp-plain { list-style: none; margin-top: var(--space-md); display: grid; gap: 0.6rem; }
+  .mp-plain li { font-size: var(--text-base); line-height: 1.6; color: var(--text-secondary); }
+  .mp-plain strong { color: var(--text-primary); }
+
+  .mp-receipt {
+    justify-self: center; width: min(380px, 100%);
+    padding: var(--space-md);
+    background: color-mix(in srgb, var(--bg-secondary) 85%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+  }
+  .mp-receipt__title { font-size: var(--text-sm); color: var(--accent); }
+  .mp-receipt__line { display: flex; justify-content: space-between; gap: var(--space-sm); margin-top: 0.5rem; font-size: var(--text-sm); color: var(--text-secondary); }
+  .mp-receipt__line span:first-child { color: var(--text-primary); }
+  .mp-receipt__line--in span:first-child { color: var(--accent); }
+  .mp-receipt__sep { margin: 0.7rem 0; border-top: 1px dashed color-mix(in srgb, var(--border) 60%, transparent); }
+  .mp-receipt__foot { margin-top: var(--space-sm); font-family: var(--font-body); font-size: var(--text-xs); line-height: 1.5; color: var(--text-secondary); }
+
+  /* ── 05 Cascada automática ── */
+  .mp-cascade-sec { padding-block: var(--space-xl); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .mp-cascade { position: relative; display: grid; gap: var(--space-lg); padding-left: var(--space-md); margin-bottom: var(--space-lg); }
+  .mp-cascade__line {
+    position: absolute; left: 1.2rem; top: 0.3rem; bottom: 0.3rem; width: 1px;
+    background: linear-gradient(to bottom, var(--accent), color-mix(in srgb, var(--accent) 15%, transparent));
+    transform: scaleY(1); transform-origin: top;
+  }
+  .mp-cascade__item { position: relative; display: grid; grid-template-columns: 2rem 1fr; gap: var(--space-sm); align-items: start; }
+  .mp-cascade__n {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    width: 2rem; height: 2rem; margin-left: -0.7rem;
+    border-radius: 50%; background: var(--bg-primary); border: 1px solid var(--accent);
+    font-family: var(--font-mono); font-size: var(--text-sm); color: var(--accent);
+  }
+  .mp-cascade__item h3 { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-lg); }
+  .mp-cascade__item p { margin-top: 0.3rem; font-size: var(--text-base); color: var(--text-secondary); line-height: 1.55; max-width: 56ch; }
+
+  /* ── 06 Reglas del juego ── */
+  .mp-rules { padding-block: var(--space-xl); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .mp-rules__master {
+    font-family: var(--font-heading); font-weight: 500; font-style: italic;
+    font-size: clamp(1.4rem, 3.6vw, 2rem); line-height: 1.3; text-wrap: balance;
+    max-width: 46ch; margin-bottom: var(--space-lg);
+    color: var(--text-primary);
+    border-left: 3px solid var(--accent); padding-left: var(--space-sm);
+  }
+  .mp-rules__grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); }
+  .mp-rules__h { font-family: var(--font-heading); font-weight: 600; font-size: var(--text-xl); margin-bottom: var(--space-sm); }
+  .mp-rules__h--ok { color: var(--accent); }
+  .mp-rules__h--no { color: var(--text-secondary); }
+  .mp-rules__list { list-style: none; display: grid; gap: 0.7rem; }
+  .mp-rules__list > li { position: relative; padding-left: 1.4rem; font-size: var(--text-base); line-height: 1.6; color: var(--text-primary); }
+  .mp-rules__list > li::before { content: '✓'; position: absolute; left: 0; color: var(--accent); font-weight: 600; }
+  .mp-rules__list--no > li { color: var(--text-secondary); }
+  .mp-rules__list--no > li::before { content: '✕'; color: var(--text-secondary); }
+
+  @media (min-width: 1024px) {
+    .mp-rules__grid { grid-template-columns: 1fr 1fr; gap: var(--space-2xl); }
+    .mp-ledger-sec__grid { grid-template-columns: 1.1fr 0.9fr; gap: var(--space-2xl); align-items: center; }
+    .mp-cascade-sec .container { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: var(--space-2xl); align-items: center; }
+    .mp-cascade-sec .shead { grid-column: 1 / -1; }
+  }
+
+  /* ── 07 CTA — cierre full-bleed con shader (§17) ── */
+  .mp-cta {
+    position: relative;
+    padding-block: clamp(var(--space-2xl), 22vh, 16rem);
+    text-align: center;
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+  }
+  /* Velo para contraste del texto sobre el shader */
+  .mp-cta::after {
+    content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(60% 70% at 50% 50%, color-mix(in srgb, var(--bg-primary) 55%, transparent), color-mix(in srgb, var(--bg-primary) 82%, transparent));
+  }
+  .mp-cta__inner {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-md);
+    max-width: 720px; margin-inline: auto;
+  }
+  .mp-cta__inner h2 {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1.04; letter-spacing: -0.03em;
+    color: var(--text-primary);
+  }
+  .mp-cta__line { display: block; }
+  .mp-cta__inner h2 em {
+    font-style: normal;
+    background: linear-gradient(100deg, var(--accent), var(--accent-hover));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .mp-cta__inner p { font-size: var(--text-lg); color: var(--text-secondary); line-height: 1.6; max-width: 46ch; }
+  .mp-cta__meta { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.1em; color: var(--text-secondary); }
+
+  /* ── Pager ── */
+  .mp-pager { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); padding-block: var(--space-md) var(--space-xl); }
+  .mp-pager__link {
+    display: flex; flex-direction: column; gap: 0.2rem; padding: var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent); border-radius: var(--radius-md);
+    text-decoration: none; transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  }
+  .mp-pager__link:hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .mp-pager__link--next { text-align: right; }
+  .mp-pager__link span { font-size: var(--text-xs); font-family: var(--font-mono); color: var(--text-secondary); }
+  .mp-pager__link b { font-weight: 500; color: var(--text-primary); }
+
+  @media (min-width: 900px) {
+    .mp-hero__grid { grid-template-columns: 1.3fr 0.7fr; gap: var(--space-2xl); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal], [data-item] { transition: none; }
+    .mp-cascade__line { transform: scaleY(1) !important; }
+  }
+</style>

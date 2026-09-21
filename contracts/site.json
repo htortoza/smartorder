@@ -15,13 +15,13 @@
   },
   "orderUrl": "/contacto",
   "navigation": [
-    { "label": "Plataforma",   "href": "#plataforma" },
-    { "label": "Desafíos",     "href": "#desafios" },
-    { "label": "Arquitectura", "href": "#arquitectura" },
-    { "label": "Roadmap",      "href": "#roadmap" },
-    { "label": "Contacto",     "href": "/contacto" }
+    { "label": "Producto",       "href": "/producto" },
+    { "label": "Producción",     "href": "/produccion" },
+    { "label": "Centro de ayuda", "href": "/centro-de-ayuda" }
   ],
   "footerLinks": [
+    { "label": "Producto",       "href": "/producto" },
+    { "label": "Producción",     "href": "/produccion" },
     { "label": "Centro de ayuda", "href": "/centro-de-ayuda" },
     { "label": "Contacto",        "href": "/contacto" }
   ],

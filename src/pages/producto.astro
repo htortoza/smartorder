@@ -1,0 +1,422 @@
+---
+// src/pages/producto.astro — bespoke (SmartOrder)
+// Página de producto: qué es, los dolores de la industria que resuelve y tour
+// de los 7 módulos de la plataforma. Distinto del home (narrativa corta) y del
+// Centro de ayuda (manual técnico): aquí el foco es persuasión + panorama completo.
+// v2: layout asimétrico (aside+ledger, no bloques centrados) + imágenes en más pasos
+// (dolores, bento Compras, banda de stats) reusando assets reales del sitio.
+import Layout from '../layouts/Layout.astro';
+import site from '../../contracts/site.json';
+import { withBase } from '../lib/path.js';
+import { modules, featureCount } from '../data/help.js';
+
+const order = site.orderUrl;
+const totalFeatures = modules.reduce((n, m) => n + featureCount(m), 0);
+const FLUJO = new Set(['compras', 'inventario', 'produccion', 'reportes']);
+const groupOf = (id) => (FLUJO.has(id) ? 'Flujo operativo' : 'Gobernanza y control');
+
+const seo = {
+  title: 'Producto — SmartOrder',
+  description: 'Compras centralizadas, inventario trazable e integración con su POS: cómo SmartOrder resuelve el abastecimiento de holdings gastronómicos.',
+  googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap',
+  schemaData: {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'SmartOrder',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    description: 'Plataforma multi-empresa de abastecimiento e inventario para operaciones gastronómicas: compras, inventario, reportes, producción y administración.',
+  },
+};
+
+const dolores = [
+  {
+    n: '01', t: 'Compras Descentralizadas',
+    d: 'Cada sucursal negocia por su cuenta: sobrecostos, compras fuera de contrato y adquisiciones que gerencia nunca autorizó.',
+    fix: 'Modo de Compra Centralizada: consolida la demanda de todas las tiendas en un solo hub, con ranking automático de proveedores por producto.',
+  },
+  {
+    n: '02', t: 'Silos de Información',
+    d: 'La venta real y el consumo teórico de insumos viven en planillas separadas: mermas no justificadas y quiebres de stock que nadie ve venir.',
+    fix: 'Stock en tránsito diferenciado del real, con Infra Stock y Sobrestock configurables por producto y alertas visuales de salud de inventario.',
+  },
+  {
+    n: '03', t: 'Auditorías Vulnerables',
+    d: 'El conteo físico depende de la memoria y la buena fe: errores humanos y manipulaciones que se descubren recién en el cierre contable.',
+    fix: 'Conteos a ciegas (el responsable no ve el stock del sistema) y una métrica de Yield que mide la fidelidad de cada conteo por producto.',
+  },
+  {
+    n: '04', t: 'Proveedores sin Trazabilidad',
+    d: 'Documentos que no calzan con la contabilidad del proveedor y ningún registro exportable cuando el ERP externo lo pide.',
+    fix: 'Campo externalId en cada documento de proveedor, webhooks salientes e integración API directa con el consumo real de su POS.',
+  },
+];
+---
+
+<Layout
+  title={seo.title}
+  description={seo.description}
+  googleFontsUrl={seo.googleFontsUrl}
+  schemaData={seo.schemaData}
+>
+  <!-- ░░ 01 · HERO ░░ -->
+  <section class="phero" aria-label="Producto">
+    <div class="container phero__grid">
+      <div class="phero__copy">
+        <span class="kicker kicker--mono" data-reveal>Producto</span>
+        <h1 class="phero__title" data-reveal>
+          El sistema operativo de abastecimiento para cadenas gastronómicas.
+        </h1>
+        <p class="phero__lead" data-reveal>
+          SmartOrder centraliza compras, inventario y producción de su holding en una sola
+          plataforma, conectada al consumo real de su punto de venta.
+        </p>
+        <div class="phero__cta" data-reveal>
+          <a class="btn btn--primary" href={order} data-magnetic>Solicitar demo</a>
+          <a class="btn btn--ghost" href="#plataforma">Ver los 7 módulos<span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+
+      <div class="phero__visual" data-reveal>
+        <figure class="pvisual">
+          <img src={withBase('/images/hero-visual-b.jpg')} alt="Encargado de bodega revisando inventario de insumos gastronómicos" loading="eager" />
+        </figure>
+        <div class="pfloat" aria-hidden="true">
+          <div class="pfloat__row"><span>Módulos integrados</span><strong>{modules.length}</strong></div>
+          <div class="pfloat__row"><span>Funcionalidades</span><strong>{totalFeatures}+</strong></div>
+          <div class="pfloat__row"><span>Trazabilidad</span><strong>100%</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 02 · DOLORES → SOLUCIÓN — aside con imagen (sticky) + ledger ░░ -->
+  <section class="pain" id="dolores" aria-label="Dolores de la industria">
+    <div class="container pain__grid">
+      <div class="pain__aside">
+        <span class="kicker kicker--mono" data-item>02 — Los dolores que ya conoce</span>
+        <h2 data-item>Los mismos problemas de siempre, con solución.</h2>
+        <p data-item>Cuatro fricciones que frenan a cualquier holding gastronómico en
+        crecimiento — y cómo las resuelve SmartOrder, una por una.</p>
+        <figure class="pain__img" data-item>
+          <img src={withBase('/images/desafios-chaos.webp')} alt="Facturas y planillas en papel dispersas sobre una superficie oscura: la operación manual a escala" loading="lazy" />
+        </figure>
+      </div>
+
+      <ol class="pledger" role="list">
+        {dolores.map((d) => (
+          <li class="pledger__row" data-item>
+            <span class="pledger__ghost" aria-hidden="true">{d.n}</span>
+            <div class="pledger__body">
+              <h3>{d.t}</h3>
+              <p class="pledger__desc">{d.d}</p>
+              <div class="pledger__fix">
+                <span class="pledger__fixtag">Cómo lo resuelve SmartOrder</span>
+                <p>{d.fix}</p>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <!-- ░░ 03 · LA PLATAFORMA — bento grid de los 7 módulos (con captura real en Compras) ░░ -->
+  <section class="bento-sec" id="plataforma" aria-label="La plataforma completa">
+    <div class="container">
+      <header class="shead">
+        <span class="kicker kicker--mono">03 — La gran idea</span>
+        <h2>La plataforma completa, módulo por módulo.</h2>
+        <p>Todo lo que necesita para operar bodegas dentro de una cadena de tiendas,
+        desde la solicitud de compra hasta el reporte para gerencia.</p>
+      </header>
+
+      <div class="bento" role="list">
+        {modules.map((m, i) => (
+          <a
+            role="listitem"
+            class={`bento__cell ${i === 0 ? 'bento__cell--shot' : ''} ${i === 5 ? 'bento__cell--hl' : ''}`}
+            href={withBase(`/centro-de-ayuda/${m.id}`)}
+            data-item
+          >
+            {i === 0 && (
+              <span class="bento__shot">
+                <img src={withBase('/images/proveedores/revision-cotizacion.webp')} alt="Pantalla real de SmartOrder: revisión de cotización con productos, acciones y totales" loading="lazy" />
+              </span>
+            )}
+            <span class="bento__body">
+              <span class="bento__group">{groupOf(m.id)}</span>
+              <span class="bento__num">{m.num}</span>
+              <h3 class="bento__title">{m.title}</h3>
+              <p class="bento__blurb">{m.blurb}</p>
+              <span class="bento__link">Ver detalle <span aria-hidden="true">→</span></span>
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 04 · PRUEBA — cifras protagonistas, asimétrico, con banda de textura ░░ -->
+  <section class="pstats" aria-label="En números">
+    <div class="pstats__bg" aria-hidden="true">
+      <img src={withBase('/images/hero-visual.jpg')} alt="" loading="lazy" />
+    </div>
+    <div class="container pstats__grid">
+      <div class="pstat pstat--big" data-item>
+        <span class="pstat__v"><em data-statnum={totalFeatures}>0</em>+</span>
+        <span class="pstat__l">funcionalidades documentadas en el Centro de ayuda</span>
+      </div>
+      <div class="pstats__side">
+        <div class="pstat" data-item>
+          <span class="pstat__v"><em data-statnum={modules.length}>0</em></span>
+          <span class="pstat__l">módulos integrados en una sola plataforma</span>
+        </div>
+        <div class="pstat" data-item>
+          <span class="pstat__v"><em data-statnum="100">0</em>%</span>
+          <span class="pstat__l">de los movimientos con trazabilidad auditable</span>
+        </div>
+        <a class="pstats__link" href={withBase('/#arquitectura')}>Ver cómo se conecta a su POS <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ 05 · CIERRE ░░ -->
+  <section class="pcta" aria-label="Agendar demostración">
+    <div class="container pcta__inner" data-item>
+      <h2>Lleve el abastecimiento de su holding a un solo sistema.</h2>
+      <p>Implementación guiada, integrada a su POS actual.</p>
+      <a class="btn btn--primary btn--lg" href={order} data-magnetic>Solicitar demo</a>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  import { bindMagnetic, bindSectionReveals, refreshOnFontsReady } from '../lib/motion.js';
+  gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function initProducto() {
+    if (!document.querySelector('.phero')) return; // guard: Astro no desregistra listeners al navegar
+    bindMagnetic();
+
+    if (!reduced) {
+      gsap.utils.toArray('[data-reveal]').forEach((el, i) => {
+        gsap.from(el, { y: 24, opacity: 0, duration: 0.9, ease: 'expo.out', delay: i * 0.06 });
+      });
+    }
+
+    bindSectionReveals(ScrollTrigger, reduced);
+
+    // Líneas del ledger se dibujan (mismo recurso que el home, §16.3)
+    if (!reduced) {
+      gsap.utils.toArray('.pledger__row').forEach((row) => {
+        gsap.from(row, { '--rule': '0%', duration: 1.1, ease: 'expo.out',
+          scrollTrigger: { trigger: row, start: 'top 85%' } });
+      });
+    }
+
+    document.querySelectorAll('[data-statnum]').forEach((el) => {
+      const target = Number(el.dataset.statnum) || 0;
+      if (reduced) { el.textContent = String(target); return; }
+      const o = { v: 0 };
+      gsap.to(o, {
+        v: target, duration: 1.4, ease: 'power1.out',
+        scrollTrigger: { trigger: el, start: 'top 88%' },
+        onUpdate: () => { el.textContent = String(Math.round(o.v)); },
+      });
+    });
+
+    ScrollTrigger.refresh();
+  }
+
+  document.addEventListener('astro:page-load', initProducto);
+  refreshOnFontsReady(ScrollTrigger);
+</script>
+
+<style>
+  /* .kicker y .btn* viven en theme.css (design tokens compartidos) */
+
+  /* ── 01 Hero ── */
+  .phero { padding-block: clamp(6rem, 14vw, 9rem) var(--space-xl); overflow: hidden; }
+  .phero__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+    align-items: center;
+  }
+  .phero__title {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: clamp(2.2rem, 6vw, 3.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .phero__lead {
+    margin-top: var(--space-sm);
+    font-size: var(--text-lg);
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 52ch;
+  }
+  .phero__cta { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-md); }
+
+  .phero__visual { position: relative; min-width: 0; }
+  .pvisual { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid color-mix(in srgb, var(--border) 50%, transparent); }
+  .pvisual img { display: block; width: 100%; height: auto; aspect-ratio: 4/3; object-fit: cover; }
+
+  .pfloat {
+    position: relative;
+    margin-top: -2.5rem;
+    margin-inline: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    display: grid;
+    gap: 0.5rem;
+    background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  }
+  .pfloat__row { display: flex; justify-content: space-between; align-items: baseline; font-size: var(--text-sm); color: var(--text-secondary); }
+  .pfloat__row strong { font-family: var(--font-mono); font-size: var(--text-lg); color: var(--accent); }
+
+  /* ── 02 Dolores: aside (sticky) + ledger ── */
+  .pain { padding-block: var(--space-xl); }
+  .pain__grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); align-items: start; }
+  .pain__aside { display: grid; gap: var(--space-sm); min-width: 0; }
+  .pain__aside h2 { font-family: var(--font-heading); font-weight: 600; font-size: clamp(1.8rem, 4.5vw, 2.4rem); letter-spacing: -0.01em; text-wrap: balance; }
+  .pain__aside p { font-size: var(--text-lg); color: var(--text-secondary); line-height: 1.6; max-width: 42ch; }
+  .pain__img { margin-top: var(--space-sm); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid color-mix(in srgb, var(--border) 45%, transparent); }
+  .pain__img img { display: block; width: 100%; height: auto; aspect-ratio: 4/3; object-fit: cover; filter: grayscale(0.15) contrast(1.05); }
+
+  .pledger { list-style: none; min-width: 0; }
+  .pledger__row {
+    --rule: 100%;
+    position: relative;
+    padding-block: var(--space-md);
+    display: grid; grid-template-columns: 1fr; gap: var(--space-sm);
+    min-width: 0;
+  }
+  .pledger__row::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: var(--rule); height: 1px;
+    background: linear-gradient(to right, color-mix(in srgb, var(--accent) 55%, transparent), transparent);
+  }
+  .pledger__ghost {
+    font-family: var(--font-heading); font-weight: 600;
+    font-size: clamp(2.5rem, 8vw, 3.5rem);
+    line-height: 0.95; letter-spacing: -0.03em;
+    color: color-mix(in srgb, var(--accent) 16%, transparent);
+    -webkit-text-stroke: 1px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .pledger__body { display: grid; gap: 0.4rem; min-width: 0; }
+  .pledger__row h3 { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-xl); letter-spacing: -0.01em; }
+  .pledger__desc { font-size: var(--text-base); line-height: 1.55; color: var(--text-secondary); max-width: 56ch; }
+  .pledger__fix { margin-top: 0.3rem; padding-top: var(--space-sm); border-top: 1px solid color-mix(in srgb, var(--border) 35%, transparent); max-width: 56ch; }
+  .pledger__fixtag { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .pledger__fix p { margin-top: 0.35rem; font-size: var(--text-sm); line-height: 1.55; color: var(--text-primary); }
+
+  @media (min-width: 1024px) {
+    .pain__grid { grid-template-columns: 0.85fr 1.15fr; gap: var(--space-2xl); }
+    .pain__aside { position: sticky; top: 12vh; align-self: start; }
+    .pledger__row { grid-template-columns: 7rem 1fr; align-items: start; gap: var(--space-lg); }
+    .pledger__ghost { text-align: center; }
+  }
+
+  /* ── 03 Bento ── */
+  .bento-sec { padding-block: var(--space-xl); }
+
+  .bento { display: grid; grid-template-columns: 1fr; gap: var(--space-sm); }
+  .bento__cell {
+    min-width: 0;
+    display: flex; flex-direction: column;
+    padding: var(--space-md);
+    background: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    border-radius: var(--radius-lg);
+    text-decoration: none; color: var(--text-primary);
+    transition: border-color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
+  }
+  .bento__cell:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary)); transform: translateY(-3px); }
+  .bento__body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .bento__group { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
+  .bento__num { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--accent); margin-top: 0.3rem; }
+  .bento__title { font-family: var(--font-heading); font-weight: 500; font-size: var(--text-xl); margin: 0.35rem 0 var(--space-xs); letter-spacing: -0.01em; }
+  .bento__blurb { font-size: var(--text-base); line-height: 1.55; color: var(--text-secondary); flex: 1; }
+  .bento__link { margin-top: var(--space-sm); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent); }
+
+  .bento__cell--hl { background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 10%, var(--bg-secondary)), var(--bg-secondary)); }
+
+  .bento__cell--shot { padding: 0; overflow: hidden; }
+  .bento__shot { display: block; width: 100%; aspect-ratio: 16/10; overflow: hidden; }
+  .bento__shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; transition: transform var(--transition-fast); }
+  .bento__cell--shot:hover .bento__shot img { transform: scale(1.05); }
+  .bento__cell--shot .bento__body { padding: var(--space-md); }
+
+  @media (min-width: 700px) {
+    .bento { grid-template-columns: repeat(2, 1fr); }
+    .bento__cell--shot { grid-column: span 2; }
+  }
+  @media (min-width: 1100px) {
+    .bento { grid-template-columns: repeat(3, 1fr); }
+    .bento__cell--shot { grid-column: span 2; flex-direction: row; align-items: stretch; }
+    .bento__cell--shot .bento__shot { flex: 0 0 46%; aspect-ratio: auto; }
+    .bento__cell--shot .bento__body { flex: 1; }
+    .bento__cell--hl { grid-column: span 1; }
+  }
+
+  /* ── 04 Stats: asimétrico + banda con textura de fondo ── */
+  .pstats { position: relative; overflow: hidden; padding-block: var(--space-xl); border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent); }
+  .pstats__bg { position: absolute; inset: 0; z-index: 0; }
+  .pstats__bg img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(0.4) brightness(0.22) contrast(1.1); }
+  .pstats__bg::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary) 78%, transparent) 55%, var(--bg-primary) 100%);
+  }
+  .pstats__grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr; gap: var(--space-lg); }
+  .pstat { display: flex; flex-direction: column; gap: 0.3rem; }
+  .pstat__v { font-family: var(--font-mono); font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .pstat__v em { font-style: normal; }
+  .pstat--big .pstat__v { font-size: clamp(3.5rem, 11vw, 6.5rem); }
+  .pstats__side .pstat__v { font-size: clamp(2rem, 5vw, 2.8rem); }
+  .pstat__l { font-size: var(--text-base); color: var(--text-secondary); max-width: 32ch; }
+  .pstats__side { display: grid; gap: var(--space-md); align-content: start; }
+  .pstats__link { display: inline-block; margin-top: var(--space-xs); font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); width: fit-content; }
+  .pstats__link:hover { color: var(--accent); }
+
+  @media (min-width: 1024px) {
+    .pstats { padding-block: var(--space-2xl); }
+    .pstats__grid { grid-template-columns: 1.3fr 1fr; align-items: end; gap: var(--space-2xl); }
+  }
+
+  /* ── 05 CTA ── */
+  .pcta { padding-block: var(--space-xl) var(--space-2xl); }
+  .pcta__inner {
+    text-align: center;
+    max-width: 60ch;
+    margin-inline: auto;
+    padding: var(--space-xl) var(--space-lg);
+    background: color-mix(in srgb, var(--accent) 7%, var(--bg-secondary));
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    border-radius: var(--radius-lg);
+  }
+  .pcta__inner h2 { font-family: var(--font-heading); font-weight: 600; font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: -0.01em; text-wrap: balance; }
+  .pcta__inner p { margin-top: var(--space-sm); font-size: var(--text-lg); color: var(--text-secondary); }
+  .pcta__inner .btn { margin-top: var(--space-md); }
+
+  @media (min-width: 900px) {
+    .phero__grid { grid-template-columns: 1.05fr 0.95fr; gap: var(--space-2xl); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal], .bento__cell, .pstats__link, .bento__shot img { transition: none; }
+  }
+</style>
