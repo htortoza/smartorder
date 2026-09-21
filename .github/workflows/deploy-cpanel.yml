@@ -38,7 +38,7 @@ jobs:
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
         run: |
-          curl -skf -u "$CPANEL_USER:$CPANEL_PASS" \
+          curl -skf -H "Authorization: cpanel $CPANEL_USER:$CPANEL_PASS" \
             -F 'dir=/home/smartord/public_html' -F 'overwrite=1' \
             -F 'file-1=@smartorder-site.zip;type=application/zip' \
             'https://smart-order.io:2083/execute/Fileman/upload_files'
@@ -48,7 +48,7 @@ jobs:
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
         run: |
-          curl -skf -u "$CPANEL_USER:$CPANEL_PASS" -G 'https://smart-order.io:2083/json-api/cpanel' \
+          curl -skf -H "Authorization: cpanel $CPANEL_USER:$CPANEL_PASS" -G 'https://smart-order.io:2083/json-api/cpanel' \
             --data-urlencode cpanel_jsonapi_apiversion=2 \
             --data-urlencode cpanel_jsonapi_module=Fileman \
             --data-urlencode cpanel_jsonapi_func=fileop \
@@ -61,7 +61,7 @@ jobs:
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
         run: |
-          curl -skf -u "$CPANEL_USER:$CPANEL_PASS" -G 'https://smart-order.io:2083/json-api/cpanel' \
+          curl -skf -H "Authorization: cpanel $CPANEL_USER:$CPANEL_PASS" -G 'https://smart-order.io:2083/json-api/cpanel' \
             --data-urlencode cpanel_jsonapi_apiversion=2 \
             --data-urlencode cpanel_jsonapi_module=Fileman \
             --data-urlencode cpanel_jsonapi_func=fileop \
