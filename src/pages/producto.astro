@@ -1,7 +1,7 @@
 ---
 // src/pages/producto.astro — bespoke (SmartOrder)
 // Página de producto: qué es, los dolores de la industria que resuelve y tour
-// de los 7 módulos de la plataforma. Distinto del home (narrativa corta) y del
+// de los módulos de la plataforma. Distinto del home (narrativa corta) y del
 // Centro de ayuda (manual técnico): aquí el foco es persuasión + panorama completo.
 // v2: layout asimétrico (aside+ledger, no bloques centrados) + imágenes en más pasos
 // (dolores, bento Compras, banda de stats) reusando assets reales del sitio.
@@ -12,7 +12,7 @@ import { modules, featureCount } from '../data/help.js';
 
 const order = site.orderUrl;
 const totalFeatures = modules.reduce((n, m) => n + featureCount(m), 0);
-const FLUJO = new Set(['compras', 'inventario', 'produccion', 'reportes']);
+const FLUJO = new Set(['compras', 'compra-centralizada', 'inventario', 'produccion', 'reportes']);
 const groupOf = (id) => (FLUJO.has(id) ? 'Flujo operativo' : 'Gobernanza y control');
 
 const seo = {
@@ -73,7 +73,7 @@ const dolores = [
         </p>
         <div class="phero__cta" data-reveal>
           <a class="btn btn--primary" href={order} data-magnetic>Solicitar demo</a>
-          <a class="btn btn--ghost" href="#plataforma">Ver los 7 módulos<span aria-hidden="true">→</span></a>
+          <a class="btn btn--ghost" href="#plataforma">Ver los {modules.length} módulos<span aria-hidden="true">→</span></a>
         </div>
       </div>
 
@@ -121,7 +121,7 @@ const dolores = [
     </div>
   </section>
 
-  <!-- ░░ 03 · LA PLATAFORMA — bento grid de los 7 módulos (con captura real en Compras) ░░ -->
+  <!-- ░░ 03 · LA PLATAFORMA — bento grid de los módulos (con captura real en Compras) ░░ -->
   <section class="bento-sec" id="plataforma" aria-label="La plataforma completa">
     <div class="container">
       <header class="shead">

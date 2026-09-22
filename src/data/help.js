@@ -5,7 +5,7 @@
 export const modules = [
   {
     id: 'compras', num: '01', title: 'Compras',
-    blurb: 'Centraliza el abastecimiento: compra centralizada multi-tienda, solicitudes a proveedor y entre tiendas, cotizaciones, órdenes, despachos y recepciones parciales.',
+    blurb: 'Solicitudes a proveedor y entre tiendas, cotizaciones, órdenes de compra, y logística de despachos y recepciones parciales.',
     intro: 'Centraliza todo el flujo de abastecimiento. Soporta tres tipos de solicitud:',
     subs: [
       {
@@ -44,15 +44,7 @@ export const modules = [
         ],
       },
       {
-        id: 'compras-centralizada', title: 'd) Modo de Compra Centralizada',
-        bullets: [
-          'Gestiona las compras desde un hub central, consolidando la demanda de distintas tiendas o bodegas en una sola negociación.',
-          'La consolidación de órdenes permite optimizar costos de compra y de negociación con el proveedor al agrupar volumen.',
-          'Da a empresas con múltiples puntos de venta visibilidad y control centralizado sobre su abastecimiento.',
-        ],
-      },
-      {
-        id: 'compras-logistica', title: 'e) Logística de Despachos y Recepciones',
+        id: 'compras-logistica', title: 'd) Logística de Despachos y Recepciones',
         bullets: [
           'Se pueden asignar y gestionar conductores y vehículos directamente desde el detalle de una orden de compra externa, centralizando la información del transporte.',
           'La Configuración de la compañía permite definir plazos máximos de llegada y vencimiento esperados para las órdenes, estandarizando y midiendo el cumplimiento de los proveedores.',
@@ -63,7 +55,16 @@ export const modules = [
     ],
   },
   {
-    id: 'inventario', num: '02', title: 'Inventario',
+    id: 'compra-centralizada', num: '02', title: 'Compra Centralizada',
+    blurb: 'Consolida la demanda de todas las tiendas o bodegas en una sola negociación con el proveedor, con visibilidad y control centralizado del abastecimiento.',
+    bullets: [
+      'Gestiona las compras desde un hub central, consolidando la demanda de distintas tiendas o bodegas en una sola negociación.',
+      'La consolidación de órdenes permite optimizar costos de compra y de negociación con el proveedor al agrupar volumen.',
+      'Da a empresas con múltiples puntos de venta visibilidad y control centralizado sobre su abastecimiento.',
+    ],
+  },
+  {
+    id: 'inventario', num: '03', title: 'Inventario',
     blurb: 'Stock por bodega con salud, Infra Stock/Sobrestock y costo promedio, conteos con protección de sesgo, movimientos manuales y órdenes externas.',
     subs: [
       {
@@ -103,7 +104,7 @@ export const modules = [
     ],
   },
   {
-    id: 'reportes', num: '03', title: 'Reportes',
+    id: 'reportes', num: '04', title: 'Reportes',
     blurb: 'Tablas dinámicas del inventario con espectro visual de salud de stock, snapshot histórico, guardado, exportación a PDF/Excel y exposición vía API Key.',
     intro: 'El módulo de reportes permite construir vistas personalizadas del inventario en formato de tabla dinámica. El usuario decide qué datos quiere ver, cómo organizarlos, y puede guardar esa configuración para reutilizarla o compartirla.',
     subs: [
@@ -143,7 +144,7 @@ export const modules = [
     ],
   },
   {
-    id: 'produccion', num: '04', title: 'Producción',
+    id: 'produccion', num: '05', title: 'Producción',
     blurb: 'Fabrica stock de productos con receta descontando automáticamente los ingredientes utilizados, o registra la salida automática cuando una venta descuenta un producto con receta.',
     intro: 'Toda producción nace Manual (un usuario la crea en el dashboard) o Automática (la dispara una venta). Comparten folio PROD-XXXXXX, pero se comportan distinto:',
     subs: [
@@ -193,7 +194,7 @@ export const modules = [
     ],
   },
   {
-    id: 'mi-empresa', num: '05', title: 'Mi Empresa',
+    id: 'mi-empresa', num: '06', title: 'Mi Empresa',
     blurb: 'Configura tiendas y bodegas propias, proveedores asignados, plazos de entrega, Infra Stock/Sobrestock por producto y ranking de proveedores.',
     bullets: [
       'Configuración de las tiendas propias y sus bodegas.',
@@ -204,7 +205,7 @@ export const modules = [
     ],
   },
   {
-    id: 'dashboard', num: '06', title: 'Dashboard y Notificaciones',
+    id: 'dashboard', num: '07', title: 'Dashboard y Notificaciones',
     blurb: 'Panel de inicio configurable con widgets en tiempo real y notificaciones instantáneas sobre eventos críticos de la operación.',
     subs: [
       {
@@ -225,7 +226,7 @@ export const modules = [
     ],
   },
   {
-    id: 'sistema', num: '07', title: 'Sistema (Administración Global)',
+    id: 'sistema', num: '08', title: 'Sistema (Administración Global)',
     blurb: 'Administración sin scope de empresa: usuarios, perfiles, proveedores, productos maestros, unidades, webhooks y API Keys.',
     intro: 'Configuración de parámetros sin scope de empresa. Incluye:',
     table: [

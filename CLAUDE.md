@@ -86,9 +86,14 @@ src/
 ├── components/     ← Componentes agnósticos reutilizables
 ├── layouts/
 │   └── Layout.astro   ← Plantilla maestra — no modificar el motor Lenis/GSAP
+├── lib/
+│   ├── path.js     ← withBase() — helper de rutas
+│   └── motion.js   ← bindMagnetic/bindSectionReveals/refreshOnFontsReady (§21.8) —
+│                      IMPORTAR siempre, nunca copiar estas funciones en una página
 ├── pages/          ← Rutas físicas del sitio
 ├── styles/
-│   └── theme.css   ← ÚNICO archivo donde el Agente UI toca el diseño
+│   └── theme.css   ← ÚNICO archivo donde el Agente UI toca el diseño.
+│                      También define .kicker/.shead/.btn compartidos (§21.8)
 └── utils/
     └── validate.js ← Ejecutar SIEMPRE antes de generar código
 contracts/
@@ -287,6 +292,12 @@ El Agente UI:
 - ❌ Hacer commit si `npm run build` falla
 - ❌ Ignorar errores de validación del contrato
 - ❌ Inventar URLs, imágenes o contenido no especificado en el contrato
+- ❌ Copiar `magnetic()`, el loop de reveal `.shead`/`[data-item]`, o el refresh de
+  ScrollTrigger en una página nueva — importar de `src/lib/motion.js` (§21.8)
+- ❌ Inventar `.pkicker`/`.mp-btn`/variantes de botón por página — usar `.kicker`,
+  `.shead`, `.btn` de `theme.css` (§21.8)
+- ❌ Escribir un `initX()` de página sin guard de existencia — rompe al navegar por
+  el menú (§21.6)
 
 ---
 
@@ -303,7 +314,7 @@ Cuando Claude Code abra este repositorio, responde con exactamente esto:
 
 ---
 
-*Versión del contrato: 1.3 — Actualizar este número ante cualquier cambio estructural. (1.3: §19 Diseño Narrativo, §20 Catálogo de Escenas + Dirección de Arte, §21 Correcciones/Gotchas; refuerzo anti-repetición y narrativa en §16.)*
+*Versión del contrato: 1.4 — Actualizar este número ante cualquier cambio estructural. (1.3: §19 Diseño Narrativo, §20 Catálogo de Escenas + Dirección de Arte, §21 Correcciones/Gotchas; refuerzo anti-repetición y narrativa en §16. 1.4: `src/lib/motion.js` como fuente única de motion compartido — §21.6 guard de página obligatorio en `initX()` para View Transitions, §21.7 `refreshOnFontsReady` reemplaza `window.load`, §21.8 tokens `.kicker`/`.shead`/`.btn` en `theme.css`; §21.9 deploy a cPanel con API Token vía header `Authorization`, no Basic Auth; §5 documenta `src/lib/`.)*
 
 ---
 
@@ -773,7 +784,9 @@ la página estática · navegación interna no la rompe · `grep -rn "font-weigh
 vacío · `og:image` presente en el HTML buildeado.
 
 **11. Deploy.** Solo cuando el usuario lo pida. Cada cliente = su propio repo (un repo por cliente);
-el template `web-factory-seed` no se contamina con contenido de cliente.
+el template `web-factory-seed` no se contamina con contenido de cliente. Push a `main` dispara
+`.github/workflows/deploy-cpanel.yml` (build → zip → sube a cPanel vía API Fileman). Ver §21.9 si
+falla la subida (`curl` exit 22).
 
 **12. Narrativa primero (§19) + sin secciones básicas/repetidas (§16.2.3, §20).** La página es UNA
 historia con arco; cada sección la avanza y conecta con la vecina. Antes de codear una sección, lista
@@ -887,3 +900,66 @@ que falte ANTES de reportar.
 ### 21.5 Init / re-init (recordatorio §15.6.1 #7)
 - Motion en `astro:page-load` (corre en carga, F5 y View Transitions). `ScrollTrigger.config({
   ignoreMobileResize: true })`. Revertir `matchMedia` antes de recrear. Limpiar en `astro:before-swap`.
+
+### 21.6 Astro NO desregistra listeners de página al navegar (View Transitions) — GOTCHA GRAVE
+- Cada página bespoke tiene su propio `<script>` con `document.addEventListener('astro:page-load', initX)`.
+  Astro **no quita** ese listener cuando navegás a otra página por el menú (SPA) — el script de la
+  página vieja sigue vivo y se re-ejecuta contra el DOM de la página nueva, cada vez que navegás.
+- **Síntoma característico**: la primera página cargada directo (hard load / F5) funciona perfecto;
+  cualquier otra página, cuando llegás **navegando por el menú**, tiene secciones que nunca se revelan
+  (quedan pegadas en su estado inicial invisible) o comportamiento errático de scroll. En consola aparecen
+  warnings de GSAP tipo `GSAP target [data-hero] not found` viniendo del script de OTRA página.
+- **Regla dura**: TODA función `initX()` de página nueva DEBE empezar con un guard que confirme que su
+  propio marcador raíz existe en el DOM actual, y salir si no:
+  ```js
+  function initProducto() {
+    if (!document.querySelector('.phero')) return; // guard: Astro no desregistra listeners al navegar
+    ...
+  }
+  ```
+  Usa un selector único de ESA página (su hero, su clase raíz). `contacto.astro` ya usaba este patrón
+  (`if (!document.querySelector('.chero')) return;`) — replicalo en cualquier página nueva desde el día 1.
+
+### 21.7 Refrescar ScrollTrigger tras fuentes async — `window.load` NO sirve con View Transitions
+- Las Google Fonts cargan async y cambian el alto de las secciones después de que ScrollTrigger ya
+  midió posiciones. Sin refresco, un scroll rápido descuadra los triggers y deja contenido pegado
+  invisible (mismo síntoma que §21.6, pero afecta incluso a la página cargada directo).
+- `window.addEventListener('load', () => ScrollTrigger.refresh())` **no sirve**: el evento `load` del
+  documento dispara UNA sola vez por sesión de navegador. Con View Transitions, `initX()` se
+  re-ejecuta en cada navegación, pero `load` ya pasó hace rato — el refresh nunca corre en las
+  páginas a las que se llega navegando (solo beneficia a la que hizo el hard load).
+- Usar `document.fonts.ready.then(() => ScrollTrigger.refresh())`: la primera vez espera a que las
+  fuentes terminen; en navegaciones siguientes (fuentes ya cargadas) resuelve al toque. Ya está
+  envuelto en `src/lib/motion.js` → `refreshOnFontsReady(ScrollTrigger)`, llamarlo siempre junto al
+  `document.addEventListener('astro:page-load', initX)` de cada página.
+
+### 21.8 No dupliques motion ni componentes de UI — fuente única en `src/lib/motion.js` y `theme.css`
+- `magnetic()`, el loop de reveal de `.shead`/`[data-item]`, y el refresh de ScrollTrigger vivían
+  copiados y ligeramente distintos en cada página (guards distintos, multiplicadores distintos:
+  0.3 vs 0.25, con/sin `dataset.magBound`). Un fix en una página no llegaba a las demás.
+- Ahora viven en `src/lib/motion.js`, importar siempre — nunca copiar la función:
+  - `bindMagnetic(strength = 0.3)` — cursor magnético en `[data-magnetic]`
+  - `bindSectionReveals(ScrollTrigger, reduced)` — reveal de `.shead` (stagger de hijos) + `[data-item]`
+  - `refreshOnFontsReady(ScrollTrigger)` — ver §21.7
+- `.kicker` (+ modificador `.kicker--mono` para contextos técnicos/de datos con folios/códigos),
+  `.shead`/`.shead h2`/`.shead p`/`.shead--tight`, y `.btn`/`.btn--primary`/`.btn--ghost`/`.btn--lg`/
+  `.btn[disabled]` viven como tokens compartidos en `theme.css`. NO inventes `.pkicker`, `.mp-btn`,
+  `.chero-btn` ni nada por el estilo en una página nueva — usa las clases globales; si hace falta una
+  variante nueva, agregala como modificador en `theme.css`, no como clase paralela en la página.
+- Si una página necesita un wrapper con un hijo que aparece/desaparece condicionalmente (ej. menú
+  desplegable al lado de un botón), sé explícito con `flex-direction` en el contenedor — sin eso, el
+  hijo condicional puede quedar lado a lado con el otro (en vez de apilado) y estirarlo por
+  `align-items: stretch`, deformando cualquier `border-radius: full` en un óvalo gigante.
+
+### 21.9 Deploy a cPanel — API Token usa header `Authorization`, no Basic Auth
+- `.github/workflows/deploy-cpanel.yml` sube el build a cPanel vía la API de Fileman (`curl`).
+- Si `CPANEL_PASS` (secret de GitHub) es un **API Token** de cPanel (recomendado sobre la contraseña
+  de login — no expira si cambian el password, se puede revocar aparte), el `curl` **no debe** usar
+  `-u "$CPANEL_USER:$CPANEL_PASS"` (Basic Auth) — falla silencioso con `curl -f` exit code 22 (HTTP
+  error). Los API Tokens de cPanel van en un header propio:
+  ```bash
+  curl -skf -H "Authorization: cpanel $CPANEL_USER:$CPANEL_PASS" ...
+  ```
+- Los secrets viven en GitHub → Settings → Secrets and variables → Actions (`CPANEL_USER`,
+  `CPANEL_PASS`) — nunca en el repo, y Claude Code no puede leerlos ni escribirlos, solo el humano
+  desde la web de GitHub. Para reintentar un deploy fallido sin nuevo commit: `gh run rerun <run-id>`.
