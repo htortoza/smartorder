@@ -298,6 +298,9 @@ El Agente UI:
   `.shead`, `.btn` de `theme.css` (§21.8)
 - ❌ Escribir un `initX()` de página sin guard de existencia — rompe al navegar por
   el menú (§21.6)
+- ❌ Hardcodear un conteo derivado de un array de datos (ej. "Ver los 7 módulos",
+  "24 funcionalidades") — usa `{array.length}` / `{reduce(...)}`. Un texto fijo queda
+  desactualizado la próxima vez que se agrega, quita o reorganiza un item (§21.10)
 
 ---
 
@@ -314,7 +317,7 @@ Cuando Claude Code abra este repositorio, responde con exactamente esto:
 
 ---
 
-*Versión del contrato: 1.4 — Actualizar este número ante cualquier cambio estructural. (1.3: §19 Diseño Narrativo, §20 Catálogo de Escenas + Dirección de Arte, §21 Correcciones/Gotchas; refuerzo anti-repetición y narrativa en §16. 1.4: `src/lib/motion.js` como fuente única de motion compartido — §21.6 guard de página obligatorio en `initX()` para View Transitions, §21.7 `refreshOnFontsReady` reemplaza `window.load`, §21.8 tokens `.kicker`/`.shead`/`.btn` en `theme.css`; §21.9 deploy a cPanel con API Token vía header `Authorization`, no Basic Auth; §5 documenta `src/lib/`.)*
+*Versión del contrato: 1.5 — Actualizar este número ante cualquier cambio estructural. (1.3: §19 Diseño Narrativo, §20 Catálogo de Escenas + Dirección de Arte, §21 Correcciones/Gotchas; refuerzo anti-repetición y narrativa en §16. 1.4: `src/lib/motion.js` como fuente única de motion compartido — §21.6 guard de página obligatorio en `initX()` para View Transitions, §21.7 `refreshOnFontsReady` reemplaza `window.load`, §21.8 tokens `.kicker`/`.shead`/`.btn` en `theme.css`; §21.9 deploy a cPanel con API Token vía header `Authorization`, no Basic Auth; §5 documenta `src/lib/`. 1.5: §21.10 patrón para promover un sub-ítem a módulo propio del Centro de ayuda (caso real: Compra Centralizada, sacada de Compras); regla anti-conteo-hardcodeado en §12.)*
 
 ---
 
@@ -963,3 +966,22 @@ que falte ANTES de reportar.
 - Los secrets viven en GitHub → Settings → Secrets and variables → Actions (`CPANEL_USER`,
   `CPANEL_PASS`) — nunca en el repo, y Claude Code no puede leerlos ni escribirlos, solo el humano
   desde la web de GitHub. Para reintentar un deploy fallido sin nuevo commit: `gh run rerun <run-id>`.
+
+### 21.10 Promover un sub-ítem a módulo propio del Centro de ayuda (patrón replicable)
+- Caso real: "Modo de Compra Centralizada" vivía como `sub` dentro del módulo `compras` en
+  `src/data/help.js`. El Ingeniero pidió que tuviera su propia página de módulo, no ser parte de Compras.
+- Pasos (todo vive en `help.js`, el resto de páginas es data-driven y no necesita tocarse):
+  1. Sacar el `sub` del array `subs` del módulo origen; relabelear las letras (a/b/c...) de los
+     subs restantes si quedó un hueco.
+  2. Crear una entrada nueva en el array `modules` en la posición deseada, con su propio
+     `id`/`num`/`title`/`blurb`/`bullets` (contenido MOVIDO, no reinventado — cero datos nuevos).
+  3. Renumerar el campo `num` de todos los módulos siguientes en el array (son strings, no se
+     recalculan solos).
+  4. Revisar `groupOf`/sets de agrupación hardcodeados en páginas que categorizan módulos
+     (ej. `FLUJO` en `producto.astro`) — el módulo nuevo necesita entrar al grupo correcto.
+  5. Actualizar el `blurb` del módulo origen si mencionaba el contenido que se movió (para no
+     describir algo que ya no le pertenece).
+  6. `[modulo].astro` (sidebar, prev/next), `centro-de-ayuda/index.astro` (tarjetas) y el bento de
+     `producto.astro` iteran `modules` dinámicamente — no necesitan cambios de código, el módulo
+     nuevo aparece solo. Sí revisar a mano cualquier conteo hardcodeado ("Ver los N módulos") —
+     regla en §12.
