@@ -1,0 +1,72 @@
+---
+// src/components/GoogleAnalytics.astro
+// Google Analytics 4 (gtag.js) en todas las páginas del sitio.
+//
+// El sitio navega con <ClientRouter /> (sin recargar la página): gtag.js se
+// carga una sola vez y el page_view se envía a mano en cada astro:page-load
+// (carga inicial + navegación con View Transitions). En GA4 debe estar
+// apagado "Cambios de página según eventos del historial" (Medición
+// mejorada); si no, GA manda además su propio page_view y lo duplica.
+//
+// Clics en links a orderUrl (/contacto), clasificados por texto:
+//   clic_solicitar_demo → el texto menciona "demo" (Solicitar demo / Demostración)
+//   clic_contacto       → cualquier otro (Contacto, Agendar Reunión Técnica…)
+// con `ubicacion` (header, menu, hero, cierre, footer, boton_flotante) y `texto`.
+import site from '../../contracts/site.json';
+import { withBase } from '../lib/path.js';
+
+const GA_ID = 'G-K47VC2B8HY';
+const orderPath = withBase(site.orderUrl ?? '/contacto');
+
+// Clase del link → ubicación legible en GA (la primera que coincida)
+const CTA_LOCATIONS = {
+  'dock__cta': 'header',
+  'dock-menu__link': 'menu',
+  'site-footer__cta': 'footer',
+  'sticky-cta': 'boton_flotante',
+  'btn--lg': 'cierre',
+  'btn--primary': 'hero',
+};
+---
+
+<script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+<script is:inline define:vars={{ GA_ID, orderPath, CTA_LOCATIONS }}>
+  // El ClientRouter puede re-ejecutar este script al navegar: inicializar una sola vez.
+  if (!window.__gaInit) {
+    window.__gaInit = true;
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { dataLayer.push(arguments); };
+    gtag('js', new Date());
+    gtag('config', GA_ID, { send_page_view: false });
+
+    document.addEventListener('astro:page-load', () => {
+      gtag('event', 'page_view', {
+        page_location: location.href,
+        page_title: document.title,
+      });
+    });
+
+    const normalize = (p) => p.replace(/\/+$/, '') || '/';
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin || normalize(url.pathname) !== normalize(orderPath)) return;
+
+      // innerText respeta lo oculto por CSS (ej. "Solicitar demo" vs "Contactar" del dock)
+      const texto = (a.innerText || a.textContent).trim().replace(/\s+/g, ' ').slice(0, 100);
+      const cls = Object.keys(CTA_LOCATIONS).find((c) => a.classList.contains(c));
+      const ubicacion = cls ? CTA_LOCATIONS[cls]
+        : a.closest('footer') ? 'footer'
+        : a.closest('header') ? 'header'
+        : 'contenido';
+      gtag('event', /demo/i.test(texto) ? 'clic_solicitar_demo' : 'clic_contacto', {
+        ubicacion,
+        texto,
+        page_location: location.href,
+      });
+    }, true);
+  }
+</script>
